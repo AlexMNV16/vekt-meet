@@ -1,0 +1,52 @@
+# =============================================================
+# wrangler.toml - VEKT meet
+# =============================================================
+name = "vekt-meet-api"
+main = "worker.js"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Custom route. Adjust to your zone.
+# routes = [
+#   { pattern = "meet.vekt.ro/api/*", zone_name = "vekt.ro" }
+# ]
+
+# -------------------------------------------------------------
+# D1 binding
+# -------------------------------------------------------------
+# Create with:  wrangler d1 create vekt-meet-db
+# Paste the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "vekt-meet-db"
+database_id = "ca408dbf-78dd-4909-ba52-5d3a1d1ffd41"
+
+# -------------------------------------------------------------
+# Public (non-secret) vars
+# -------------------------------------------------------------
+[vars]
+RESEND_FROM        = "VEKT meet <noreply@meet.vekt.ro>"
+RESEND_REPLY_TO    = "contact@vekt.ro"
+PUBLIC_SITE_URL    = "https://meet.vekt.ro"
+UNSUBSCRIBE_URL    = "https://meet.vekt.ro/unsubscribe"
+ALLOWED_ORIGIN     = "https://meet.vekt.ro"
+RATE_LIMIT_PER_HR  = "5"
+
+# -------------------------------------------------------------
+# Secrets - set with: wrangler secret put <NAME>
+#   RESEND_API_KEY   - Resend.com API key
+#   CSRF_SECRET      - random 32+ byte hex string for HMAC
+# -------------------------------------------------------------
+
+# -------------------------------------------------------------
+# Scheduled cleanup of rate_limits table (optional)
+# -------------------------------------------------------------
+[triggers]
+crons = ["0 * * * *"]   # hourly
+
+# -------------------------------------------------------------
+# Pages config (separate project for static assets)
+# Configure in dashboard or with `wrangler pages` CLI.
+# Build command: (none - static)
+# Output directory: public
+# -------------------------------------------------------------
