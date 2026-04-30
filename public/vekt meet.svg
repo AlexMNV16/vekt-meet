@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="perfume" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 160 58.88">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: url(#Gold);
+      }
+
+      .cls-2, .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        font-family: AndaleMono, 'Andale Mono';
+        font-size: 11.41px;
+        letter-spacing: .11em;
+      }
+    </style>
+    <linearGradient id="Gold" x1="42.77" y1="15.99" x2="139.93" y2="15.99" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fbc926"/>
+      <stop offset=".25" stop-color="#fffbcc"/>
+      <stop offset=".3" stop-color="#f8efba"/>
+      <stop offset=".41" stop-color="#e7d18d"/>
+      <stop offset=".55" stop-color="#cca246"/>
+      <stop offset=".6" stop-color="#c3922e"/>
+      <stop offset=".87" stop-color="#eed688"/>
+      <stop offset="1" stop-color="#fffbcc"/>
+    </linearGradient>
+  </defs>
+  <polygon id="bară-2" data-name="bară" class="cls-1" points="137.42 20.49 42.77 20.47 45.12 11.49 139.93 11.49 137.42 20.49"/>
+  <polygon id="v_left" data-name="v left" class="cls-2" points="32.02 53.47 29.67 53.47 20.04 25.47 30.75 25.47 35.29 41.72 32.02 53.47"/>
+  <polygon id="v_right" data-name="v right" class="cls-2" points="42.72 53.47 34.1 53.47 42.77 20.47 53.32 20.47 42.72 53.47"/>
+  <path id="E" class="cls-2" d="M53.97,53.47V18.47h25v8h-16v5h12v8l-12,.06v5.94h16v8h-25Z"/>
+  <path id="K" class="cls-2" d="M80.78,53.47V18.47h9v7.52l-.18,10.08.18,4.63v12.78h-9ZM88.14,47.57l-.45-8.31c.64-1.47.52-2.42,1.13-3.6s1.99-2.77,2.89-3.97,1.85-2.63,3.08-4.24l6.94-8.98h11.23l-14.6,17.98-.75-.09-9.46,11.2ZM102.45,53.47l-8.41-14.04,6-6.94,13.57,20.98h-11.16Z"/>
+  <path id="T" class="cls-2" d="M107.68,26.47l6.5-8h25.88l-2.28,8h-10v27h-9v-27h-11.1Z"/>
+  <text class="cls-3" transform="translate(101.96 10.06) scale(1.23 1)"><tspan x="0" y="0">meet</tspan></text>
+</svg>
