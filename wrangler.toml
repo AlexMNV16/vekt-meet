@@ -6,10 +6,10 @@ main = "worker.js"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Custom route. Adjust to your zone.
-# routes = [
-#   { pattern = "meet.vekt.ro/api/*", zone_name = "vekt.ro" }
-# ]
+# Custom route — Worker handles /api/* on the Pages domain.
+[[routes]]
+pattern = "meet.vekt.ro/api/*"
+zone_name = "vekt.ro"
 
 # -------------------------------------------------------------
 # D1 binding

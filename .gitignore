@@ -1,0 +1,6 @@
+.wrangler/
+node_modules/
+.DS_Store
+*.log
+.dev.vars
+judete.geojson
