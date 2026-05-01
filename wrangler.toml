@@ -6,47 +6,32 @@ main = "worker.js"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Custom route — Worker handles /api/* on the Pages domain.
+# Worker handles /api/* on the Pages domain.
 [[routes]]
 pattern = "meet.vekt.ro/api/*"
 zone_name = "vekt.ro"
 
 # -------------------------------------------------------------
-# D1 binding
-# -------------------------------------------------------------
-# Create with:  wrangler d1 create vekt-meet-db
-# Paste the returned database_id below.
-[[d1_databases]]
-binding = "DB"
-database_name = "vekt-meet-db"
-database_id = "ca408dbf-78dd-4909-ba52-5d3a1d1ffd41"
-
-# -------------------------------------------------------------
-# Public (non-secret) vars
+# Public vars
 # -------------------------------------------------------------
 [vars]
+SUPABASE_URL       = "https://pwmoksolnvlqonxswisr.supabase.co"
 RESEND_FROM        = "VEKT meet <noreply@meet.vekt.ro>"
 RESEND_REPLY_TO    = "contact@vekt.ro"
 PUBLIC_SITE_URL    = "https://meet.vekt.ro"
-UNSUBSCRIBE_URL    = "https://meet.vekt.ro/unsubscribe"
+UNSUBSCRIBE_URL    = "https://meet.vekt.ro/unsubscribe.html"
 ALLOWED_ORIGIN     = "https://meet.vekt.ro"
 RATE_LIMIT_PER_HR  = "5"
 
 # -------------------------------------------------------------
-# Secrets - set with: wrangler secret put <NAME>
-#   RESEND_API_KEY   - Resend.com API key
-#   CSRF_SECRET      - random 32+ byte hex string for HMAC
+# Secrets (set with: wrangler secret put <NAME>)
+#   SUPABASE_SERVICE_KEY  - service_role JWT from Supabase Settings > API
+#   RESEND_API_KEY        - Resend API key
+#   CSRF_SECRET           - 32+ byte hex
 # -------------------------------------------------------------
 
 # -------------------------------------------------------------
-# Scheduled cleanup of rate_limits table (optional)
+# Scheduled cleanup of rate_limits (hourly)
 # -------------------------------------------------------------
 [triggers]
-crons = ["0 * * * *"]   # hourly
-
-# -------------------------------------------------------------
-# Pages config (separate project for static assets)
-# Configure in dashboard or with `wrangler pages` CLI.
-# Build command: (none - static)
-# Output directory: public
-# -------------------------------------------------------------
+crons = ["0 * * * *"]

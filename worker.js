@@ -1,21 +1,22 @@
 // =============================================================
-// VEKT meet - Cloudflare Worker API
+// VEKT meet - Cloudflare Worker API (Supabase backend)
 //
 // Routes:
-//   GET  /api/csrf       -> issue HMAC-signed CSRF token
-//   GET  /api/counties   -> live leaderboard (totals)
-//   POST /api/register   -> validate, persist, email
+//   GET  /api/csrf       -> HMAC-signed CSRF token (stateless)
+//   GET  /api/counties   -> live leaderboard from Supabase
+//   POST /api/register   -> validate, call register_vote RPC, email
 //   *    /api/*          -> 404 JSON
 //
-// Bindings (wrangler.toml):
-//   DB                  D1 database
-//   RESEND_API_KEY      secret
-//   CSRF_SECRET         secret (>= 32 bytes hex)
+// Bindings (wrangler.toml / secrets):
+//   SUPABASE_URL         var   - https://xxx.supabase.co
+//   SUPABASE_SERVICE_KEY secret - service_role JWT
+//   RESEND_API_KEY       secret
+//   CSRF_SECRET          secret - 32+ byte hex
 //   RESEND_FROM, RESEND_REPLY_TO, PUBLIC_SITE_URL,
 //   UNSUBSCRIBE_URL, ALLOWED_ORIGIN, RATE_LIMIT_PER_HR
 // =============================================================
 
-const COUNTIES = {
+const COUNTY_NAMES = {
   AB:'Alba', AR:'Arad', AG:'Argeș', BC:'Bacău', BH:'Bihor',
   BN:'Bistrița-Năsăud', BT:'Botoșani', BV:'Brașov', BR:'Brăila',
   B:'București', BZ:'Buzău', CS:'Caraș-Severin', CL:'Călărași',
@@ -33,21 +34,16 @@ const COUNTIES = {
 // =============================================================
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
+    const url    = new URL(request.url);
     const method = request.method.toUpperCase();
 
-    // CORS preflight
     if (method === 'OPTIONS') return cors(new Response(null, { status: 204 }), env);
 
     try {
-      if (url.pathname === '/api/csrf'      && method === 'GET')  return cors(await handleCsrf(env), env);
-      if (url.pathname === '/api/counties'  && method === 'GET')  return cors(await handleCounties(env), env);
-      if (url.pathname === '/api/register'  && method === 'POST') return cors(await handleRegister(request, env), env);
-
-      if (url.pathname.startsWith('/api/')) {
-        return cors(json({ error: 'not_found' }, 404), env);
-      }
-
+      if (url.pathname === '/api/csrf'     && method === 'GET')  return cors(await handleCsrf(env), env);
+      if (url.pathname === '/api/counties' && method === 'GET')  return cors(await handleCounties(env), env);
+      if (url.pathname === '/api/register' && method === 'POST') return cors(await handleRegister(request, env), env);
+      if (url.pathname.startsWith('/api/')) return cors(json({ error: 'not_found' }, 404), env);
       return new Response('VEKT meet API', { status: 200 });
     } catch (err) {
       console.error('unhandled', err);
@@ -55,15 +51,9 @@ export default {
     }
   },
 
-  // Hourly cron: prune rate_limits older than 2h
   async scheduled(event, env, ctx) {
-    try {
-      await env.DB.prepare(
-        `DELETE FROM rate_limits WHERE attempt_at < datetime('now', '-2 hours')`
-      ).run();
-    } catch (err) {
-      console.error('cron prune failed', err);
-    }
+    const cutoff = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+    await sbFetch(env, `DELETE /rest/v1/rate_limits?attempt_at=lt.${cutoff}`, null);
   },
 };
 
@@ -84,402 +74,285 @@ function cors(res, env) {
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
 // =============================================================
-// CSRF (HMAC double-submit, stateless)
-// Token = base64url(payload) + '.' + base64url(hmac)
-// payload = { n: nonce, t: issuedAt, exp: expiresAt }
+// Supabase REST helper
 // =============================================================
-const CSRF_TTL_SECONDS = 60 * 60; // 1h
-
-async function hmacKey(secret) {
-  const enc = new TextEncoder().encode(secret);
-  return crypto.subtle.importKey(
-    'raw', enc, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']
-  );
+async function sbFetch(env, endpoint, body) {
+  const [method, path] = endpoint.split(' ');
+  const url = `${env.SUPABASE_URL}${path}`;
+  const opts = {
+    method,
+    headers: {
+      'apikey':        env.SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      'Content-Type':  'application/json',
+      'Prefer':        'return=representation',
+    },
+  };
+  if (body !== null && body !== undefined) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  const text = await res.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+  return { ok: res.ok, status: res.status, data };
 }
 
-function b64u(bytes) {
-  let s = btoa(String.fromCharCode(...new Uint8Array(bytes)));
-  return s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-function b64uDecode(str) {
-  str = str.replace(/-/g, '+').replace(/_/g, '/');
-  while (str.length % 4) str += '=';
-  const bin = atob(str);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
+// =============================================================
+// CSRF (stateless HMAC, 1h TTL)
+// =============================================================
+async function handleCsrf(env) {
+  const token = await mintCsrf(env);
+  return json({ token, ttl: 3600 });
 }
 
-async function issueCsrf(env) {
-  if (!env.CSRF_SECRET) throw new Error('CSRF_SECRET not set');
-  const now = Math.floor(Date.now() / 1000);
-  const nonceBytes = new Uint8Array(16);
-  crypto.getRandomValues(nonceBytes);
-  const payload = { n: b64u(nonceBytes), t: now, exp: now + CSRF_TTL_SECONDS };
-  const payloadBytes = new TextEncoder().encode(JSON.stringify(payload));
-  const key = await hmacKey(env.CSRF_SECRET);
-  const sig = await crypto.subtle.sign('HMAC', key, payloadBytes);
-  return `${b64u(payloadBytes)}.${b64u(sig)}`;
+async function mintCsrf(env) {
+  const now    = Math.floor(Date.now() / 1000);
+  const bucket = Math.floor(now / 3600);
+  const key    = await importKey(env.CSRF_SECRET);
+  const sig    = await sign(key, String(bucket));
+  return `${bucket}.${sig}`;
 }
 
 async function verifyCsrf(token, env) {
   if (!token || typeof token !== 'string') return false;
-  const parts = token.split('.');
-  if (parts.length !== 2) return false;
-  try {
-    const payloadBytes = b64uDecode(parts[0]);
-    const sigBytes = b64uDecode(parts[1]);
-    const key = await hmacKey(env.CSRF_SECRET);
-    const ok = await crypto.subtle.verify('HMAC', key, sigBytes, payloadBytes);
-    if (!ok) return false;
-    const payload = JSON.parse(new TextDecoder().decode(payloadBytes));
-    const now = Math.floor(Date.now() / 1000);
-    return typeof payload.exp === 'number' && payload.exp > now;
-  } catch {
-    return false;
-  }
+  const [bucketStr, sig] = token.split('.');
+  if (!bucketStr || !sig) return false;
+  const now    = Math.floor(Date.now() / 1000);
+  const bucket = parseInt(bucketStr, 10);
+  if (isNaN(bucket)) return false;
+  const currentBucket = Math.floor(now / 3600);
+  if (Math.abs(currentBucket - bucket) > 1) return false;
+  const key      = await importKey(env.CSRF_SECRET);
+  const expected = await sign(key, String(bucket));
+  return timingSafe(sig, expected);
 }
 
-async function handleCsrf(env) {
-  const token = await issueCsrf(env);
-  return json({ token, ttl: CSRF_TTL_SECONDS });
+async function importKey(secret) {
+  const raw = hexToBytes(secret);
+  return crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+}
+
+async function sign(key, msg) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.sign('HMAC', key, enc.encode(msg));
+  return bytesToHex(new Uint8Array(buf));
+}
+
+function hexToBytes(hex) {
+  const arr = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) arr[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  return arr;
+}
+
+function bytesToHex(bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function timingSafe(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
 }
 
 // =============================================================
-// Counties (live leaderboard)
+// GET /api/counties -- leaderboard
 // =============================================================
 async function handleCounties(env) {
-  const rs = await env.DB.prepare(
-    `SELECT county_id, county_name, total_votes, total_points
-       FROM county_totals
-       ORDER BY total_points DESC, total_votes DESC, county_name ASC`
-  ).all();
-  return json({ counties: rs.results || [] });
+  const { ok, data } = await sbFetch(
+    env,
+    'GET /rest/v1/county_totals?order=total_points.desc&select=county_id,county_name,total_votes,total_points',
+    null
+  );
+  if (!ok) return json({ error: 'db_error' }, 500);
+  const counties = Array.isArray(data) ? data : [];
+  const all = Object.entries(COUNTY_NAMES).map(([id, name]) => {
+    const row = counties.find(r => r.county_id === id);
+    return {
+      id,
+      name,
+      votes:  row?.total_votes  ?? 0,
+      points: row?.total_points ?? 0,
+    };
+  });
+  all.sort((a, b) => b.points - a.points || b.votes - a.votes);
+  return json({ counties: all });
 }
 
 // =============================================================
-// Register
+// POST /api/register
 // =============================================================
 async function handleRegister(request, env) {
-  // Content-Type
-  const ct = request.headers.get('content-type') || '';
-  if (!ct.includes('application/json')) {
-    return json({ error: 'invalid_content_type' }, 400);
-  }
-
-  // CSRF
-  const csrf = request.headers.get('x-csrf-token');
-  if (!(await verifyCsrf(csrf, env))) {
+  const csrfToken = request.headers.get('X-CSRF-Token') || '';
+  if (!(await verifyCsrf(csrfToken, env))) {
     return json({ error: 'invalid_csrf' }, 403);
   }
 
-  // Parse
+  const ip = request.headers.get('CF-Connecting-IP') ||
+             request.headers.get('X-Forwarded-For') || 'unknown';
+  const limitPerHr = parseInt(env.RATE_LIMIT_PER_HR || '5', 10);
+  const cutoff = new Date(Date.now() - 3600 * 1000).toISOString();
+
+  const rlRes = await sbFetch(
+    env,
+    `GET /rest/v1/rate_limits?ip_address=eq.${encodeURIComponent(ip)}&attempt_at=gte.${cutoff}&select=id`,
+    null
+  );
+  if (rlRes.ok && Array.isArray(rlRes.data) && rlRes.data.length >= limitPerHr) {
+    return json({ error: 'rate_limited' }, 429);
+  }
+
   let body;
   try { body = await request.json(); }
   catch { return json({ error: 'invalid_json' }, 400); }
 
-  // Client IP (CF header)
-  const ip = request.headers.get('cf-connecting-ip') || '0.0.0.0';
-  const ua = (request.headers.get('user-agent') || '').slice(0, 512);
+  const err = validate(body);
+  if (err) return json({ error: err }, 422);
 
-  // Rate limit
-  const limit = parseInt(env.RATE_LIMIT_PER_HR || '5', 10);
-  const rl = await env.DB.prepare(
-    `SELECT COUNT(*) AS c FROM rate_limits
-       WHERE ip_address = ?1 AND attempt_at > datetime('now','-1 hour')`
-  ).bind(ip).first();
-  if ((rl?.c ?? 0) >= limit) {
-    return json({ error: 'rate_limited', retry_after: 3600 }, 429);
+  const votes = body.votes;
+
+  const payload = {
+    prenume:           body.prenume.trim(),
+    nume:              body.nume.trim(),
+    email:             body.email.trim().toLowerCase(),
+    telefon:           body.telefon?.trim() || '',
+    marca_masina:      body.marca_masina.trim(),
+    model_masina:      body.model_masina.trim(),
+    an_fabricatie:     Number(body.an_fabricatie),
+    marketing_consent: !!body.marketing_consent,
+    votes:             votes.map(v => ({
+      county_id:   v.county_id,
+      county_name: COUNTY_NAMES[v.county_id] || v.county_id,
+      vote_rank:   v.vote_rank,
+    })),
+    ip_address: ip,
+    user_agent: request.headers.get('User-Agent') || '',
+  };
+
+  const rpcRes = await sbFetch(env, 'POST /rest/v1/rpc/register_vote', payload);
+  const result = rpcRes.data;
+
+  if (!rpcRes.ok || result?.error) {
+    const errCode = result?.error || 'db_error';
+    if (errCode === 'email_exists')   return json({ error: 'email_exists' }, 409);
+    if (errCode === 'duplicate_vote') return json({ error: 'duplicate_vote' }, 409);
+    console.error('rpc error', result);
+    return json({ error: 'db_error' }, 500);
   }
-
-  // Validate
-  const v = validate(body);
-  if (!v.ok) return json({ error: 'invalid_input', fields: v.errors }, 400);
-  const data = v.data;
-
-  // Duplicate email
-  const dupe = await env.DB.prepare(`SELECT id FROM users WHERE email = ?1`).bind(data.email).first();
-  if (dupe) {
-    // record rate-limit hit anyway
-    await env.DB.prepare(`INSERT INTO rate_limits (ip_address) VALUES (?1)`).bind(ip).run();
-    return json({ error: 'email_exists' }, 400);
-  }
-
-  // Insert user (single op, get id), then batch votes + totals atomically
-  const nowIso = new Date().toISOString();
-  const insertUser = await env.DB.prepare(
-    `INSERT INTO users
-       (prenume, nume, email, telefon, marca_masina, model_masina, an_fabricatie,
-        marketing_consent, marketing_consent_at, privacy_consent_at,
-        ip_address, user_agent, created_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)`
-  ).bind(
-    data.prenume, data.nume, data.email, data.telefon || null,
-    data.marca_masina, data.model_masina, data.an_fabricatie,
-    data.marketing_consent ? 1 : 0,
-    data.marketing_consent ? nowIso : null,
-    nowIso,
-    ip, ua, nowIso,
-  ).run();
-
-  const userId = insertUser.meta?.last_row_id;
-  if (!userId) return json({ error: 'insert_failed' }, 500);
-
-  // Build batch: 3 votes + 3 totals updates
-  const ops = [];
-  for (const vote of data.votes) {
-    const points = vote.rank === 1 ? 3 : vote.rank === 2 ? 2 : 1;
-    ops.push(
-      env.DB.prepare(
-        `INSERT INTO county_votes
-           (user_id, county_id, county_name, vote_rank, points)
-         VALUES (?1, ?2, ?3, ?4, ?5)`
-      ).bind(userId, vote.id, COUNTIES[vote.id], vote.rank, points)
-    );
-    ops.push(
-      env.DB.prepare(
-        `UPDATE county_totals
-            SET total_votes  = total_votes  + 1,
-                total_points = total_points + ?2,
-                last_updated = datetime('now')
-          WHERE county_id = ?1`
-      ).bind(vote.id, points)
-    );
-  }
-  ops.push(env.DB.prepare(`INSERT INTO rate_limits (ip_address) VALUES (?1)`).bind(ip));
 
   try {
-    await env.DB.batch(ops);
-  } catch (err) {
-    console.error('batch failed', err);
-    // Best-effort rollback: remove user (cascade removes any inserted votes)
-    await env.DB.prepare(`DELETE FROM users WHERE id = ?1`).bind(userId).run().catch(() => {});
-    return json({ error: 'persist_failed' }, 500);
+    await sendEmail(env, body.email.trim().toLowerCase(), body.prenume.trim(), votes);
+  } catch (e) {
+    console.error('email failed', e);
   }
 
-  // Send email (non-blocking for the response if it fails)
-  try {
-    await sendConfirmationEmail(env, data);
-  } catch (err) {
-    console.error('email failed', err);
-    // Do NOT fail the request - vote is recorded.
-  }
-
-  return json({ ok: true, message: 'Gata. Când VEKT meet se confirmă în județul tău, primești email.' }, 200);
+  return json({ ok: true });
 }
 
 // =============================================================
 // Validation
 // =============================================================
 function validate(body) {
-  const errors = {};
-  const out = {};
+  if (!body || typeof body !== 'object') return 'invalid_body';
+  if (!str(body.prenume, 2, 60))       return 'invalid_prenume';
+  if (!str(body.nume, 2, 60))          return 'invalid_nume';
+  if (!email(body.email))              return 'invalid_email';
+  if (body.telefon && !phone(body.telefon)) return 'invalid_telefon';
+  if (!str(body.marca_masina, 1, 60))  return 'invalid_marca';
+  if (!str(body.model_masina, 1, 60))  return 'invalid_model';
+  const an = Number(body.an_fabricatie);
+  if (!Number.isInteger(an) || an < 1950 || an > new Date().getFullYear() + 1) return 'invalid_an';
+  if (!body.privacy_consent)           return 'privacy_required';
 
-  // strings
-  const txt = (v, min = 1, max = 120) => {
-    if (typeof v !== 'string') return null;
-    const t = v.trim();
-    if (t.length < min || t.length > max) return null;
-    return t;
-  };
-
-  out.prenume = txt(body.prenume, 2, 60);
-  if (!out.prenume) errors.prenume = 'min_2_chars';
-
-  out.nume = txt(body.nume, 2, 60);
-  if (!out.nume) errors.nume = 'min_2_chars';
-
-  // Email
-  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-  // RFC-pragmatic regex
-  const emailOk = /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i.test(email) && email.length <= 254;
-  if (!emailOk) errors.email = 'invalid_email';
-  else out.email = email;
-
-  // Telefon (optional, RO format if provided)
-  if (body.telefon != null && body.telefon !== '') {
-    const cleaned = String(body.telefon).replace(/[\s.\-()]/g, '');
-    // +407XXXXXXXX  / 07XXXXXXXX  (mobile) - 10 digits after country
-    const phoneOk = /^(?:\+?40|0)7\d{8}$/.test(cleaned);
-    if (!phoneOk) errors.telefon = 'invalid_phone_ro';
-    else out.telefon = cleaned;
-  } else {
-    out.telefon = null;
+  const votes = body.votes;
+  if (!Array.isArray(votes) || votes.length < 1 || votes.length > 3) return 'invalid_votes_count';
+  const seen = new Set();
+  for (const v of votes) {
+    if (!COUNTY_NAMES[v.county_id]) return 'invalid_county';
+    if (![1, 2, 3].includes(v.vote_rank)) return 'invalid_rank';
+    if (seen.has(v.county_id)) return 'duplicate_county';
+    seen.add(v.county_id);
   }
+  const ranks = votes.map(v => v.vote_rank).sort((a, b) => a - b);
+  for (let i = 0; i < ranks.length; i++) if (ranks[i] !== i + 1) return 'invalid_ranks';
 
-  out.marca_masina = txt(body.marca_masina, 1, 60);
-  if (!out.marca_masina) errors.marca_masina = 'required';
+  return null;
+}
 
-  out.model_masina = txt(body.model_masina, 1, 60);
-  if (!out.model_masina) errors.model_masina = 'required';
-
-  // An fabricatie
-  const an = parseInt(body.an_fabricatie, 10);
-  if (!Number.isInteger(an) || an < 1950 || an > 2026) errors.an_fabricatie = 'out_of_range';
-  else out.an_fabricatie = an;
-
-  // Consents
-  out.marketing_consent = body.marketing_consent === true;
-  if (body.privacy_consent !== true) errors.privacy_consent = 'required';
-
-  // Votes - exactly 1..3 ranked, distinct counties, valid ids
-  if (!Array.isArray(body.votes) || body.votes.length < 1 || body.votes.length > 3) {
-    errors.votes = 'select_1_to_3';
-  } else {
-    const ranks = new Set();
-    const ids = new Set();
-    const norm = [];
-    for (const v of body.votes) {
-      if (!v || typeof v !== 'object') { errors.votes = 'invalid_vote_shape'; break; }
-      if (!COUNTIES[v.id]) { errors.votes = 'invalid_county_id'; break; }
-      const rank = parseInt(v.rank, 10);
-      if (![1, 2, 3].includes(rank)) { errors.votes = 'invalid_rank'; break; }
-      if (ranks.has(rank)) { errors.votes = 'duplicate_rank'; break; }
-      if (ids.has(v.id))   { errors.votes = 'duplicate_county'; break; }
-      ranks.add(rank); ids.add(v.id);
-      norm.push({ id: v.id, rank });
-    }
-    norm.sort((a, b) => a.rank - b.rank);
-    out.votes = norm;
-    // ranks must start at 1 and be contiguous (1, or 1+2, or 1+2+3)
-    if (!errors.votes) {
-      const expected = [1, 2, 3].slice(0, norm.length);
-      if (!norm.every((v, i) => v.rank === expected[i])) errors.votes = 'ranks_must_be_contiguous';
-    }
-  }
-
-  return Object.keys(errors).length ? { ok: false, errors } : { ok: true, data: out };
+function str(v, min, max) {
+  return typeof v === 'string' && v.trim().length >= min && v.trim().length <= max;
+}
+function email(v) {
+  return typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+}
+function phone(v) {
+  return typeof v === 'string' && /^[\d\s+\-()]{6,20}$/.test(v.trim());
 }
 
 // =============================================================
-// Resend email
+// Confirmation email (Resend)
 // =============================================================
-async function sendConfirmationEmail(env, data) {
-  if (!env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not set');
+async function sendEmail(env, toEmail, prenume, votes) {
+  const rankLabel = ['Prima', 'A doua', 'A treia'];
+  const voteRows = votes
+    .sort((a, b) => a.vote_rank - b.vote_rank)
+    .map(v => `<tr>
+      <td style="padding:8px 0;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:0.12em;">${rankLabel[v.vote_rank - 1]} alegere</td>
+      <td style="padding:8px 0 8px 24px;color:#fff;font-size:16px;font-weight:700;">${COUNTY_NAMES[v.county_id] || v.county_id}</td>
+    </tr>`)
+    .join('');
 
-  const top = data.votes.find(v => v.rank === 1);
-  const topName = COUNTIES[top.id];
-
-  const subject = `VEKT meet - Confirmare Vot ${topName}`;
-  const html = renderEmailHtml(data, env);
-  const text = renderEmailText(data, env);
+  const html = `<!DOCTYPE html>
+<html lang="ro">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#000;font-family:Helvetica Neue,Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#000;padding:40px 0;">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#000;border:1px solid #1a1a1a;">
+      <tr><td style="padding:40px 48px 32px;border-bottom:1px solid #1a1a1a;">
+        <a href="${env.PUBLIC_SITE_URL}" style="text-decoration:none;">
+          <img src="${env.PUBLIC_SITE_URL}/assets/vekt-logo.png" width="80" alt="VEKT" style="display:block;">
+        </a>
+      </td></tr>
+      <tr><td style="padding:48px 48px 0;">
+        <p style="margin:0 0 8px;color:#B8860B;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;">VEKT MEET. EDITIA 01.</p>
+        <h1 style="margin:0 0 32px;color:#fff;font-size:40px;font-weight:700;line-height:0.95;text-transform:uppercase;letter-spacing:-0.02em;">AI VOTAT.</h1>
+        <p style="margin:0 0 32px;color:#888;font-size:16px;line-height:1.6;">Salut ${prenume}, votul tau a fost inregistrat. Cand VEKT meet se confirma in judetul tau, primesti email.</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #1a1a1a;margin-bottom:32px;">
+          ${voteRows}
+        </table>
+        <p style="margin:0 0 48px;color:#555;font-size:14px;line-height:1.6;">Nu raspunde la acest email. Contact: <a href="mailto:contact@vekt.ro" style="color:#B8860B;text-decoration:none;">contact@vekt.ro</a></p>
+      </td></tr>
+      <tr><td style="padding:24px 48px 40px;border-top:1px solid #1a1a1a;">
+        <p style="margin:0;color:#333;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">Pharaoh Media SRL &middot; CUI 45791703 &middot; Cluj-Napoca</p>
+        <p style="margin:8px 0 0;color:#333;font-size:11px;"><a href="${env.UNSUBSCRIBE_URL}" style="color:#555;text-decoration:none;">Dezabonare</a> &middot; <a href="${env.PUBLIC_SITE_URL}/privacy.html" style="color:#555;text-decoration:none;">Confidentialitate</a></p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`;
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
+      'Content-Type':  'application/json',
     },
     body: JSON.stringify({
-      from: env.RESEND_FROM,
+      from:     env.RESEND_FROM,
       reply_to: env.RESEND_REPLY_TO,
-      to: [data.email],
-      subject,
+      to:       [toEmail],
+      subject:  'VEKT meet - Confirmare Vot',
       html,
-      text,
-      headers: {
-        'List-Unsubscribe': `<${env.UNSUBSCRIBE_URL}?email=${encodeURIComponent(data.email)}>`,
-      },
     }),
   });
-
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`resend ${res.status}: ${body}`);
+    const e = await res.text();
+    throw new Error(`Resend ${res.status}: ${e}`);
   }
-}
-
-function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
-function renderEmailHtml(data, env) {
-  const rows = data.votes.map(v => {
-    const points = v.rank === 1 ? 3 : v.rank === 2 ? 2 : 1;
-    const label = v.rank === 1 ? 'Prima alegere' : v.rank === 2 ? 'A doua alegere' : 'A treia alegere';
-    return `
-      <tr>
-        <td style="padding:14px 18px;border-bottom:1px solid #1a1a1a;font:600 13px/1.4 Helvetica,Arial,sans-serif;color:#999;letter-spacing:0.08em;text-transform:uppercase;">${escapeHtml(label)}</td>
-        <td style="padding:14px 18px;border-bottom:1px solid #1a1a1a;font:700 16px/1.4 Helvetica,Arial,sans-serif;color:#ffffff;">${escapeHtml(COUNTIES[v.id])}</td>
-        <td style="padding:14px 18px;border-bottom:1px solid #1a1a1a;font:600 13px/1.4 Helvetica,Arial,sans-serif;color:#D4A574;text-align:right;">${points} pct</td>
-      </tr>`;
-  }).join('');
-
-  const unsub = `${env.UNSUBSCRIBE_URL}?email=${encodeURIComponent(data.email)}`;
-
-  return `<!doctype html>
-<html lang="ro">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>VEKT meet</title>
-</head>
-<body style="margin:0;padding:0;background:#000000;color:#ffffff;font-family:Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#000000;">
-    <tr><td align="center" style="padding:40px 20px;">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#000000;border:1px solid #1a1a1a;">
-
-        <tr><td style="padding:32px 32px 24px 32px;border-bottom:2px solid;border-image:linear-gradient(90deg,#D4A574,#B8860B) 1;">
-          <div style="font:900 11px/1 Helvetica,Arial,sans-serif;letter-spacing:0.32em;color:#D4A574;text-transform:uppercase;">VEKT meet</div>
-          <div style="margin-top:14px;font:900 28px/1.1 Helvetica,Arial,sans-serif;color:#ffffff;letter-spacing:-0.01em;text-transform:uppercase;">Vot înregistrat.</div>
-        </td></tr>
-
-        <tr><td style="padding:28px 32px 8px 32px;font:400 15px/1.6 Helvetica,Arial,sans-serif;color:#cccccc;">
-          Salut ${escapeHtml(data.prenume)},<br><br>
-          Am primit voturile tale pentru VEKT meet. Iată ce ai trimis:
-        </td></tr>
-
-        <tr><td style="padding:8px 32px 24px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #1a1a1a;">
-            ${rows}
-          </table>
-        </td></tr>
-
-        <tr><td style="padding:8px 32px 28px 32px;font:400 14px/1.6 Helvetica,Arial,sans-serif;color:#999999;">
-          Colectăm voturi. Când vedem interes suficient într-un județ, confirmăm data și locația. Primești email cu detalii.
-        </td></tr>
-
-        <tr><td style="padding:0 32px 32px 32px;">
-          <a href="${escapeHtml(env.PUBLIC_SITE_URL)}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#D4A574,#B8860B);color:#000000;font:900 12px/1 Helvetica,Arial,sans-serif;letter-spacing:0.16em;text-transform:uppercase;text-decoration:none;">Vezi pagina VEKT meet</a>
-        </td></tr>
-
-        <tr><td style="padding:24px 32px;border-top:1px solid #1a1a1a;font:400 11px/1.6 Helvetica,Arial,sans-serif;color:#666666;">
-          Ai primit acest email pentru că te-ai înscris pe ${escapeHtml(env.PUBLIC_SITE_URL)}.<br>
-          Dacă nu mai vrei să primești emailuri de la noi, <a href="${escapeHtml(unsub)}" style="color:#D4A574;text-decoration:underline;">dezabonează-te aici</a>.<br><br>
-          VEKT &middot; Pharaoh Media S.R.L. &middot; Cluj-Napoca
-        </td></tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function renderEmailText(data, env) {
-  const lines = [];
-  lines.push('VEKT meet - Vot inregistrat');
-  lines.push('');
-  lines.push(`Salut ${data.prenume},`);
-  lines.push('');
-  lines.push('Am primit voturile tale pentru VEKT meet:');
-  for (const v of data.votes) {
-    const pts = v.rank === 1 ? 3 : v.rank === 2 ? 2 : 1;
-    lines.push(`  ${v.rank}. ${COUNTIES[v.id]} (${pts} pct)`);
-  }
-  lines.push('');
-  lines.push('Colectam voturi. Cand vedem interes suficient intr-un judet,');
-  lines.push('confirmam data si locatia. Primesti email cu detalii.');
-  lines.push('');
-  lines.push(env.PUBLIC_SITE_URL);
-  lines.push('');
-  lines.push(`Dezabonare: ${env.UNSUBSCRIBE_URL}?email=${encodeURIComponent(data.email)}`);
-  return lines.join('\n');
 }
