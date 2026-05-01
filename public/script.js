@@ -51,7 +51,6 @@
     }
 
     document.getElementById('cookie-accept')?.addEventListener('click', () => saveConsent('all'));
-    document.getElementById('cookie-essential')?.addEventListener('click', () => saveConsent('essential'));
     document.getElementById('cookie-reject')?.addEventListener('click', () => saveConsent('essential'));
   }
 

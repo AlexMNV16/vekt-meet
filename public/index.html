@@ -25,7 +25,7 @@ body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,san
 .hdr{position:sticky;top:0;z-index:100;background:rgba(0,0,0,0);border-bottom:1px solid transparent;transition:background .3s,border-color .3s;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}
 .hdr.hdr--scrolled{background:rgba(0,0,0,.85);border-color:#1a1a1a;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .hdr__inner{max-width:1440px;margin:0 auto;padding:0 clamp(24px,6vw,80px);height:64px;display:flex;align-items:center;justify-content:space-between}
-.hdr__logo-img{height:24px;width:auto;display:block}
+.hdr__logo-img{height:32px;width:auto;display:block}
 .hdr__logo-text{color:#fff;font-size:20px;font-weight:700;letter-spacing:.16em;text-decoration:none;text-transform:uppercase}
 .hdr__brand{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.16em}
 .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:80px;overflow:hidden}
@@ -451,12 +451,7 @@ body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,san
       <small class="field__err field__err--votes" id="votes-err" role="alert"></small>
 
       <button type="submit" class="cta" id="submit-btn">
-        <span class="cta__txt">VOTEAZĂ ȘI ÎNSCRIE-TE</span>
-        <span class="cta__arrow" aria-hidden="true">
-          <svg width="20" height="12" viewBox="0 0 20 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 6H18M14 1L19 6L14 11" stroke="currentColor" stroke-width="1.5"/>
-          </svg>
-        </span>
+        <span class="cta__txt">VOTEAZĂ SI INSCRIE-TE</span>
       </button>
 
       <p class="form__legal">Trimițând formularul, confirmi ca ai peste 18 ani si ca datele introduse iti apartin.</p>
@@ -520,24 +515,21 @@ body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,san
 <!-- ===== FOOTER ===== -->
 <footer class="ftr" role="contentinfo">
   <div class="ftr__inner">
-    <div class="ftr__brand">
+    <div class="ftr__top">
       <a href="/" class="ftr__logo-link" aria-label="VEKT">
-        <img src="/assets/vekt%20meet.svg" alt="VEKT" height="40" class="ftr__logo-img"
+        <img src="/assets/vekt%20meet.svg" alt="VEKT" height="48" class="ftr__logo-img"
              onerror="this.onerror=null;this.src='/assets/vekt%20meet.png';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='block'}">
         <span class="ftr__logo-text" style="display:none">VEKT</span>
       </a>
-      <p class="ftr__tag">PPF. CHIMIE PREMIUM. MADE FOR CARS.</p>
+      <nav class="ftr__nav" aria-label="Footer">
+        <a href="/privacy.html">Confidentialitate</a>
+        <a href="/terms.html">Termeni</a>
+        <a href="/unsubscribe.html">Dezabonare</a>
+        <a href="https://vekt.ro" target="_blank" rel="noopener">vekt.ro</a>
+      </nav>
     </div>
-    <nav class="ftr__nav" aria-label="Footer">
-      <a href="/privacy.html">CONFIDENTIALITATE</a>
-      <a href="/terms.html">TERMENI</a>
-      <a href="/unsubscribe.html">DEZABONARE</a>
-      <a href="https://vekt.ro">VEKT.RO</a>
-    </nav>
-    <div class="ftr__legal">
-      <p>© 2026 PHARAOH MEDIA SRL</p>
-      <p>CLUJ-NAPOCA</p>
-      <p>CUI 45791703</p>
+    <div class="ftr__bottom">
+      <p class="ftr__legal">© 2026 PHARAOH MEDIA SRL &nbsp;·&nbsp; Cluj-Napoca &nbsp;·&nbsp; CUI 45791703</p>
     </div>
   </div>
 </footer>
@@ -546,13 +538,11 @@ body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,san
 <div class="cookie" id="cookie-banner" role="dialog" aria-label="Preferinte cookies" aria-hidden="true">
   <div class="cookie__inner">
     <p class="cookie__text">
-      Folosim cookies tehnice esentiale pentru functionarea site-ului si, optional, cookies de analiza pentru a imbunatati experienta.
-      <a href="/privacy.html#cookies">Detalii</a>
+      Folosim cookies esentiale pentru functionarea site-ului. <a href="/privacy.html#cookies">Detalii</a>
     </p>
     <div class="cookie__actions">
-      <button type="button" class="cookie__btn cookie__btn--reject" id="cookie-reject">REFUZA</button>
-      <button type="button" class="cookie__btn cookie__btn--essential" id="cookie-essential">DOAR ESENTIALE</button>
-      <button type="button" class="cookie__btn cookie__btn--accept" id="cookie-accept">ACCEPTA TOATE</button>
+      <button type="button" class="cookie__btn cookie__btn--reject" id="cookie-reject">Refuza</button>
+      <button type="button" class="cookie__btn cookie__btn--accept" id="cookie-accept">Accepta</button>
     </div>
   </div>
 </div>
