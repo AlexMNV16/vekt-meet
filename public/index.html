@@ -5,100 +5,124 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <meta name="robots" content="index,follow">
-<title>VEKT meet — Votează județul unde vrei carmeet</title>
-<meta name="description" content="VEKT meet. Votează județul unde vrei carmeet. Colectăm voturi. Când vedem interes suficient, confirmăm data și locația.">
-<link rel="canonical" href="https://meet.vekt.ro/">
+<title>VEKT meet · Votează județul unde vrei carmeet</title>
+<meta name="description" content="VEKT meet ediția 01. Spune-ne unde vrei carmeet și primești email când se confirmă.">
+<link rel="canonical" href="https://meet.vekt.ro">
 <meta property="og:type" content="website">
-<meta property="og:title" content="VEKT meet — Votează județul unde vrei carmeet">
-<meta property="og:description" content="Colectăm voturi. Când vedem interes suficient, confirmăm data și locația.">
-<meta property="og:url" content="https://meet.vekt.ro/">
+<meta property="og:title" content="VEKT meet · Votează județul unde vrei carmeet">
+<meta property="og:description" content="VEKT meet ediția 01. Mașini. Atmosferă. Zero compromis.">
+<meta property="og:image" content="https://meet.vekt.ro/assets/vekt-logo.png">
+<meta property="og:url" content="https://meet.vekt.ro">
 <meta property="og:locale" content="ro_RO">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+/* Critical above-the-fold CSS */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-text-size-adjust:100%}
+body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.skip-link{position:absolute;top:-40px;left:0;background:#000;color:#D4A574;padding:8px 16px;z-index:9999;font-size:12px;text-decoration:none}
+.skip-link:focus{top:0}
+.hdr{position:sticky;top:0;z-index:100;background:rgba(0,0,0,0);border-bottom:1px solid transparent;transition:background .3s,border-color .3s;backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0)}
+.hdr.hdr--scrolled{background:rgba(0,0,0,.85);border-color:#1a1a1a;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.hdr__inner{max-width:1440px;margin:0 auto;padding:0 clamp(24px,6vw,80px);height:64px;display:flex;align-items:center;justify-content:space-between}
+.hdr__logo-img{height:24px;width:auto;display:block}
+.hdr__logo-text{color:#fff;font-size:20px;font-weight:700;letter-spacing:.16em;text-decoration:none;text-transform:uppercase}
+.hdr__brand{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.16em}
+.hero{position:relative;min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:80px;overflow:hidden}
+.hero__bg{position:absolute;inset:0;background:#0a0a0a url('/assets/carmeet-hero.jpg') center/cover no-repeat}
+.hero__bg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,0,0,.4) 0%,rgba(0,0,0,.85) 100%),linear-gradient(to bottom,transparent 40%,rgba(0,0,0,.92) 100%)}
+.hero__inner{position:relative;z-index:1;max-width:1440px;width:100%;margin:0 auto;padding:0 clamp(24px,6vw,80px)}
+.hero__eyebrow{color:#B8860B;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;margin-bottom:24px}
+.hero__title{font-size:clamp(48px,10vw,128px);font-weight:700;text-transform:uppercase;letter-spacing:-.02em;line-height:.95;margin-bottom:32px}
+.hero__line{display:block}
+.hero__sub{font-size:18px;color:rgba(255,255,255,.7);max-width:480px;line-height:1.5}
+.hero__scroll{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);width:1px;height:60px;background:linear-gradient(135deg,#D4A574,#B8860B);animation:heroScroll 2s ease-in-out infinite}
+@keyframes heroScroll{0%,100%{opacity:1;transform:translateX(-50%) scaleY(1)}50%{opacity:.3;transform:translateX(-50%) scaleY(.6)}}
+</style>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
 <a href="#form" class="skip-link">Sari la formular</a>
 
-<header class="hdr" role="banner">
+<header class="hdr" role="banner" id="hdr">
   <div class="hdr__inner">
-    <a class="hdr__logo" href="https://vekt.ro" aria-label="VEKT">VEKT</a>
-    <nav class="hdr__nav" aria-label="Principal">
-      <a href="https://vekt.ro">vekt.ro</a>
-      <span aria-hidden="true" class="hdr__sep">/</span>
-      <span class="hdr__current">meet</span>
-    </nav>
+    <a class="hdr__logo" href="/" aria-label="VEKT">
+      <img src="/assets/vekt-logo.svg" alt="VEKT" height="24" class="hdr__logo-img"
+           onerror="this.onerror=null;this.src='/assets/vekt-logo.png';this.onerror=function(){this.style.display='none';this.parentNode.querySelector('.hdr__logo-text').style.display='block'}">
+      <span class="hdr__logo-text" style="display:none">VEKT</span>
+    </a>
+    <span class="hdr__brand">VEKT.RO / MEET</span>
   </div>
 </header>
 
 <main>
 
-  <!-- =========================================================
-       HERO
-  ========================================================== -->
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="hero__inner">
-      <div class="hero__eyebrow">VEKT meet · ediția 01</div>
-      <h1 id="hero-title" class="hero__title">VEKT meet —<br>Votează județul<br>unde vrei carmeet</h1>
-      <p class="hero__sub">Colectăm voturi. Când vedem interes suficient, confirmăm data și locația.</p>
+<!-- ===== HERO ===== -->
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__bg" aria-hidden="true"></div>
+  <div class="hero__inner">
+    <p class="hero__eyebrow reveal">VEKT MEET. EDITIA 01.</p>
+    <h1 id="hero-title" class="hero__title">
+      <span class="hero__line">JUDETUL TAU.</span>
+      <span class="hero__line">CARMEET-UL TAU.</span>
+    </h1>
+    <p class="hero__sub reveal reveal--d2">Votează unde vrei VEKT meet. Când avem masa critică, confirmăm.</p>
+  </div>
+  <div class="hero__scroll" aria-hidden="true"></div>
+</section>
 
-      <ul class="hero__meta" aria-label="Cum funcționează">
-        <li><span class="hero__meta-num">01</span><span class="hero__meta-txt">Selectezi până la 3 județe (1, 2, 3)</span></li>
-        <li><span class="hero__meta-num">02</span><span class="hero__meta-txt">Trimiți datele tale și ale mașinii</span></li>
-        <li><span class="hero__meta-num">03</span><span class="hero__meta-txt">Primești email când meet-ul se confirmă</span></li>
-      </ul>
+<!-- ===== MANIFESTO ===== -->
+<div class="manifesto" aria-hidden="true">
+  <p class="manifesto__text">MASINI. ATMOSFERA. ZERO COMPROMIS.</p>
+</div>
+
+<!-- ===== CUM FUNCTIONEAZA ===== -->
+<section class="steps" aria-labelledby="steps-title">
+  <div class="steps__inner">
+    <h2 id="steps-title" class="sr-only">Cum functioneaza</h2>
+    <div class="steps__grid">
+      <div class="step reveal">
+        <span class="step__num">01</span>
+        <h3 class="step__title">ALEGE.</h3>
+        <p class="step__desc">Selectează până la 3 județe în ordinea preferinței.</p>
+      </div>
+      <div class="step reveal reveal--d1">
+        <span class="step__num">02</span>
+        <h3 class="step__title">INREGISTREAZA.</h3>
+        <p class="step__desc">Date despre tine și mașina ta.</p>
+      </div>
+      <div class="step reveal reveal--d2">
+        <span class="step__num">03</span>
+        <h3 class="step__title">ASTEAPTA.</h3>
+        <p class="step__desc">Email când VEKT meet se confirmă în județul tău.</p>
+      </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- =========================================================
-       MAP + LEADERBOARD
-  ========================================================== -->
-  <section class="vote" aria-labelledby="vote-title">
-    <div class="vote__head">
-      <h2 id="vote-title" class="sec-title">01 — Județe</h2>
-      <p class="sec-sub">Apasă pe județ. Prima selecție = locul 1 (3 puncte). A doua = locul 2 (2 puncte). A treia = locul 3 (1 punct).</p>
+<!-- ===== VOTE: HARTA + SIDEBAR ===== -->
+<section class="vote" id="harta" aria-labelledby="vote-title">
+  <div class="vote__inner">
+    <div class="vote__head reveal">
+      <h2 id="vote-title" class="sec-title">01. JUDETE.</h2>
+      <p class="sec-sub">Prima selecție: 3 puncte. A doua: 2 puncte. A treia: 1 punct.</p>
     </div>
+    <div class="vote__layout">
 
-    <div class="vote__grid">
-
-      <!-- ============================================
-           ROMANIA SVG MAP
-           ----------------------------------------------
-           SCHEMATIC layout: 42 counties geographically
-           arranged as an industrial grid (matches VEKT
-           brand). For cartographically-accurate polygon
-           paths, run:
-              node tools/fetch-romania-svg.mjs
-           which fetches verified GeoJSON from a public
-           source and rewrites this <svg> in place.
-           Each county uses a stable id="county-XX",
-           class="county", data-id, data-name. The JS
-           binds purely on data-id, so swapping in real
-           paths requires no code change.
-      ============================================== -->
-      <div class="map" role="region" aria-label="Hartă județe România">
-        <svg id="romania-map"
-             viewBox="0 0 760 600"
-             xmlns="http://www.w3.org/2000/svg"
-             role="img"
-             aria-labelledby="map-title map-desc">
-          <title id="map-title">România - 42 județe</title>
-          <desc id="map-desc">Apasă pe un județ pentru a-l selecta. Maxim 3 selecții.</desc>
-
+      <div class="map" role="region" aria-label="Harta județe Romania">
+        <svg id="romania-map" viewBox="0 0 760 600" xmlns="http://www.w3.org/2000/svg" aria-labelledby="map-svg-title">
+          <title id="map-svg-title">Romania. 42 judete. Apasa pentru a selecta.</title>
           <defs>
             <linearGradient id="cu" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%"  stop-color="#D4A574"/>
+              <stop offset="0%" stop-color="#D4A574"/>
               <stop offset="100%" stop-color="#B8860B"/>
             </linearGradient>
-            <filter id="cu-glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3" result="b"/>
+            <filter id="cu-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2" result="b"/>
               <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
             </filter>
           </defs>
-
-          <!-- Counties. Each <g class="county"> contains:
-               <rect> hit area, <text class="abbr">, <text class="cnt"> -->
-
-          <!-- Generated from GeoJSON -->
           <g class="county" data-id="SB" data-name="Sibiu">
             <path class="hit" d="M378.06,292.67 L360.03,300.57 L364.36,304.63 L355.1,307.98 L358.05,317.93 L345.68,319.18 L335.06,319.09 L317.19,322.68 L292.62,321.75 L283.01,323.64 L279.75,323.17 L276.71,320.35 L278.55,316.91 L274.79,313.28 L278.62,309.5 L277.72,307.74 L285.73,305.24 L286.21,301.67 L293.44,299.8 L296.35,295.17 L300.55,294.53 L305.86,296.34 L313.16,290.62 L320.85,288.68 L320.7,285.59 L323.36,283.07 L355.92,282.44 L358.64,291.93 L372.22,291.15 L378.06,292.67 Z"/>
             <text class="abbr" x="326.42" y="301.04">SB</text>
@@ -310,103 +334,104 @@
             <text class="cnt"  x="354.36" y="276.56">0</text>
           </g>
         </svg>
-
-        <div class="map__legend" aria-hidden="true">
-          <span><i class="lg lg--default"></i>Disponibil</span>
-          <span><i class="lg lg--sel"></i>Selectat</span>
-          <span class="map__hint">Voturi vizibile pe fiecare bloc</span>
+        <div class="map__tooltip" id="map-tooltip" aria-hidden="true">
+          <span class="map__tooltip-name"></span>
+          <span class="map__tooltip-pts"></span>
         </div>
-
-        <p class="map__placeholder-note">
-          Reprezentare schematică a celor 42 de unități administrative.
-          Pentru harta cartografică detaliată, vezi <code>tools/fetch-romania-svg.mjs</code>.
-        </p>
       </div>
 
-      <!-- ============================================
-           SIDEBAR: Selected + Leaderboard
-      ============================================== -->
-      <aside class="side" aria-label="Selecție și clasament">
-
-        <div class="side__block side__block--sel">
+      <aside class="side" aria-label="Selectie si clasament">
+        <div class="side__block">
           <div class="side__head">
-            <h3 class="side__title">Selecția ta</h3>
-            <button type="button" id="reset-selection" class="side__reset" aria-label="Resetează selecția">Reset</button>
+            <h3 class="side__title">SELECTIA TA</h3>
+            <button type="button" id="reset-selection" class="side__reset">Reset</button>
           </div>
           <ol class="picks" id="picks">
-            <li class="pick" data-rank="1"><span class="pick__rank">01</span><span class="pick__name pick__name--empty">Prima alegere</span><span class="pick__pts">3 pct</span></li>
-            <li class="pick" data-rank="2"><span class="pick__rank">02</span><span class="pick__name pick__name--empty">A doua alegere</span><span class="pick__pts">2 pct</span></li>
-            <li class="pick" data-rank="3"><span class="pick__rank">03</span><span class="pick__name pick__name--empty">A treia alegere</span><span class="pick__pts">1 pct</span></li>
+            <li class="pick" data-rank="1">
+              <span class="pick__rank">01</span>
+              <span class="pick__name pick__name--empty">Prima alegere</span>
+              <span class="pick__pts">3 pct</span>
+            </li>
+            <li class="pick" data-rank="2">
+              <span class="pick__rank">02</span>
+              <span class="pick__name pick__name--empty">A doua alegere</span>
+              <span class="pick__pts">2 pct</span>
+            </li>
+            <li class="pick" data-rank="3">
+              <span class="pick__rank">03</span>
+              <span class="pick__name pick__name--empty">A treia alegere</span>
+              <span class="pick__pts">1 pct</span>
+            </li>
           </ol>
         </div>
 
         <div class="side__block">
           <div class="side__head">
-            <h3 class="side__title">Top 5 județe</h3>
-            <span class="side__live" id="live-dot" aria-hidden="true"></span>
+            <h3 class="side__title">TOP 5</h3>
+            <span class="side__live" aria-hidden="true">LIVE</span>
           </div>
           <ol class="board" id="leaderboard" aria-live="polite">
-            <li class="board__row board__row--empty">Așteaptă primele voturi.</li>
+            <li class="board__empty">Primele voturi...</li>
           </ol>
         </div>
-
       </aside>
-    </div>
-  </section>
 
-  <!-- =========================================================
-       FORM
-  ========================================================== -->
-  <section class="form-sec" id="form" aria-labelledby="form-title">
-    <div class="form-head">
-      <h2 id="form-title" class="sec-title">02 — Date</h2>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FORM ===== -->
+<section class="form-sec" id="form" aria-labelledby="form-title">
+  <div class="form-sec__inner">
+    <div class="form-sec__head reveal">
+      <h2 id="form-title" class="sec-title">02. DATE.</h2>
       <p class="sec-sub">Datele rămân la noi. Nu le vindem. Nu le distribuim.</p>
     </div>
 
     <form id="vekt-form" class="form" novalidate autocomplete="on">
       <input type="hidden" name="csrf" id="csrf">
 
-      <div class="form__row">
+      <div class="form__row form__row--2">
         <div class="field">
-          <label class="field__lbl" for="prenume">Prenume <span class="req">*</span></label>
-          <input class="field__in" id="prenume" name="prenume" type="text" minlength="2" maxlength="60" required autocomplete="given-name" inputmode="text" spellcheck="false">
-          <small class="field__err" data-for="prenume"></small>
+          <label class="field__lbl" for="prenume">Prenume <span class="req" aria-hidden="true">*</span></label>
+          <input class="field__in" id="prenume" name="prenume" type="text" minlength="2" maxlength="60" required autocomplete="given-name" spellcheck="false">
+          <small class="field__err" data-for="prenume" role="alert"></small>
         </div>
         <div class="field">
-          <label class="field__lbl" for="nume">Nume <span class="req">*</span></label>
-          <input class="field__in" id="nume" name="nume" type="text" minlength="2" maxlength="60" required autocomplete="family-name" inputmode="text" spellcheck="false">
-          <small class="field__err" data-for="nume"></small>
+          <label class="field__lbl" for="nume">Nume <span class="req" aria-hidden="true">*</span></label>
+          <input class="field__in" id="nume" name="nume" type="text" minlength="2" maxlength="60" required autocomplete="family-name" spellcheck="false">
+          <small class="field__err" data-for="nume" role="alert"></small>
         </div>
       </div>
 
-      <div class="form__row">
+      <div class="form__row form__row--2">
         <div class="field">
-          <label class="field__lbl" for="email">Email <span class="req">*</span></label>
+          <label class="field__lbl" for="email">Email <span class="req" aria-hidden="true">*</span></label>
           <input class="field__in" id="email" name="email" type="email" required autocomplete="email" inputmode="email" spellcheck="false">
-          <small class="field__err" data-for="email"></small>
+          <small class="field__err" data-for="email" role="alert"></small>
         </div>
         <div class="field">
-          <label class="field__lbl" for="telefon">Telefon <span class="opt">opțional</span></label>
+          <label class="field__lbl" for="telefon">Telefon <span class="opt">(optional)</span></label>
           <input class="field__in" id="telefon" name="telefon" type="tel" autocomplete="tel" inputmode="tel" placeholder="07xx xxx xxx">
-          <small class="field__err" data-for="telefon"></small>
+          <small class="field__err" data-for="telefon" role="alert"></small>
         </div>
       </div>
 
       <div class="form__row form__row--3">
         <div class="field">
-          <label class="field__lbl" for="marca_masina">Marcă mașină <span class="req">*</span></label>
+          <label class="field__lbl" for="marca_masina">Marca masina <span class="req" aria-hidden="true">*</span></label>
           <input class="field__in" id="marca_masina" name="marca_masina" type="text" required maxlength="60" autocomplete="off" spellcheck="false">
-          <small class="field__err" data-for="marca_masina"></small>
+          <small class="field__err" data-for="marca_masina" role="alert"></small>
         </div>
         <div class="field">
-          <label class="field__lbl" for="model_masina">Model <span class="req">*</span></label>
+          <label class="field__lbl" for="model_masina">Model <span class="req" aria-hidden="true">*</span></label>
           <input class="field__in" id="model_masina" name="model_masina" type="text" required maxlength="60" autocomplete="off" spellcheck="false">
-          <small class="field__err" data-for="model_masina"></small>
+          <small class="field__err" data-for="model_masina" role="alert"></small>
         </div>
         <div class="field">
-          <label class="field__lbl" for="an_fabricatie">An <span class="req">*</span></label>
-          <input class="field__in" id="an_fabricatie" name="an_fabricatie" type="number" min="1950" max="2026" required inputmode="numeric" autocomplete="off">
-          <small class="field__err" data-for="an_fabricatie"></small>
+          <label class="field__lbl" for="an_fabricatie">An <span class="req" aria-hidden="true">*</span></label>
+          <input class="field__in" id="an_fabricatie" name="an_fabricatie" type="number" min="1950" max="2026" required inputmode="numeric" autocomplete="off" placeholder="1950-2026">
+          <small class="field__err" data-for="an_fabricatie" role="alert"></small>
         </div>
       </div>
 
@@ -414,58 +439,123 @@
         <label class="check">
           <input type="checkbox" id="marketing_consent" name="marketing_consent">
           <span class="check__box" aria-hidden="true"></span>
-          <span class="check__txt">Vreau să primesc emailuri despre VEKT meet și produse VEKT. Mă pot dezabona oricând.</span>
+          <span class="check__txt">Vreau sa primesc emailuri despre VEKT meet si produse VEKT. Ma pot dezabona oricand.</span>
         </label>
-
         <label class="check">
           <input type="checkbox" id="privacy_consent" name="privacy_consent" required>
           <span class="check__box" aria-hidden="true"></span>
-          <span class="check__txt">Sunt de acord cu <a href="/privacy" target="_blank" rel="noopener">politica de confidențialitate</a>. <span class="req">*</span></span>
+          <span class="check__txt">Sunt de acord cu <a href="/privacy.html" target="_blank" rel="noopener">politica de confidentialitate</a>. <span class="req" aria-hidden="true">*</span></span>
         </label>
       </div>
 
-      <small class="field__err field__err--votes" id="votes-err"></small>
+      <small class="field__err field__err--votes" id="votes-err" role="alert"></small>
 
       <button type="submit" class="cta" id="submit-btn">
-        <span class="cta__txt">Votează și înscrie-te</span>
-        <span class="cta__arrow" aria-hidden="true">→</span>
+        <span class="cta__txt">VOTEAZĂ ȘI ÎNSCRIE-TE</span>
+        <span class="cta__arrow" aria-hidden="true">
+          <svg width="20" height="12" viewBox="0 0 20 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M0 6H18M14 1L19 6L14 11" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </span>
       </button>
 
-      <p class="legal">
-        Trimițând formularul, confirmi că ai peste 18 ani și că datele introduse îți aparțin.
-        Stocăm datele în baza interesului legitim de a-ți confirma vot și meet, conform GDPR.
-      </p>
+      <p class="form__legal">Trimițând formularul, confirmi ca ai peste 18 ani si ca datele introduse iti apartin.</p>
+      <p class="form__note">Datele tale raman la VEKT. Nu le vindem. Nu le distribuim.</p>
     </form>
 
-    <!-- Success state -->
     <div class="success" id="success" role="status" aria-live="polite" hidden>
       <div class="success__inner">
-        <div class="success__mark" aria-hidden="true">
-          <svg viewBox="0 0 48 48" width="48" height="48"><path d="M10 25 L21 36 L40 14" fill="none" stroke="url(#cu2)" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/><defs><linearGradient id="cu2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#D4A574"/><stop offset="100%" stop-color="#B8860B"/></linearGradient></defs></svg>
-        </div>
-        <h3 class="success__title">Gata.</h3>
-        <p class="success__msg">Când VEKT meet se confirmă în județul tău, primești email.</p>
-        <a href="https://vekt.ro" class="success__link">Mergi pe vekt.ro →</a>
+        <p class="success__num">01</p>
+        <h2 class="success__title">AI VOTAT.</h2>
+        <p class="success__msg">Cand VEKT meet se confirma in judetul tau, primesti email.</p>
+        <ol class="success__picks" id="success-picks"></ol>
+        <a href="/#harta" class="success__back">INAPOI LA HARTA</a>
       </div>
     </div>
+  </div>
+</section>
 
-  </section>
+<!-- ===== FAQ ===== -->
+<section class="faq" aria-labelledby="faq-title">
+  <div class="faq__inner">
+    <h2 id="faq-title" class="sec-title reveal">INTREBARI.</h2>
+    <div class="faq__list">
+
+      <details class="faq__item">
+        <summary class="faq__q">Costa ceva?<span class="faq__chevron" aria-hidden="true"></span></summary>
+        <div class="faq__a"><p>Nu. VEKT meet e gratuit.</p></div>
+      </details>
+
+      <details class="faq__item">
+        <summary class="faq__q">Cate voturi pot da?<span class="faq__chevron" aria-hidden="true"></span></summary>
+        <div class="faq__a"><p>3 judete, in ordinea preferintei.</p></div>
+      </details>
+
+      <details class="faq__item">
+        <summary class="faq__q">Cand se anunta locatia si data?<span class="faq__chevron" aria-hidden="true"></span></summary>
+        <div class="faq__a"><p>Cand avem masa critica in acel judet.</p></div>
+      </details>
+
+      <details class="faq__item">
+        <summary class="faq__q">Cine organizeaza?<span class="faq__chevron" aria-hidden="true"></span></summary>
+        <div class="faq__a"><p>VEKT, alaturi de comunitatea locala.</p></div>
+      </details>
+
+      <details class="faq__item">
+        <summary class="faq__q">Ce primesc daca vin?<span class="faq__chevron" aria-hidden="true"></span></summary>
+        <div class="faq__a"><p>Comunitate, continut foto-video, eventual produs VEKT.</p></div>
+      </details>
+
+      <details class="faq__item">
+        <summary class="faq__q">Pot sa-mi retrag inregistrarea?<span class="faq__chevron" aria-hidden="true"></span></summary>
+        <div class="faq__a"><p>Da, oricand la <a href="mailto:contact@vekt.ro">contact@vekt.ro</a>.</p></div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
 </main>
 
-<footer class="ftr">
+<!-- ===== FOOTER ===== -->
+<footer class="ftr" role="contentinfo">
   <div class="ftr__inner">
     <div class="ftr__brand">
-      <span class="ftr__logo">VEKT</span>
-      <span class="ftr__tag">PPF · chimie premium · made for cars</span>
+      <a href="/" class="ftr__logo-link" aria-label="VEKT">
+        <img src="/assets/vekt-logo.svg" alt="VEKT" height="40" class="ftr__logo-img"
+             onerror="this.onerror=null;this.src='/assets/vekt-logo.png';this.onerror=function(){this.style.display='none';this.nextElementSibling.style.display='block'}">
+        <span class="ftr__logo-text" style="display:none">VEKT</span>
+      </a>
+      <p class="ftr__tag">PPF. CHIMIE PREMIUM. MADE FOR CARS.</p>
     </div>
     <nav class="ftr__nav" aria-label="Footer">
-      <a href="/privacy">Confidențialitate</a>
-      <a href="/terms">Termeni</a>
-      <a href="https://vekt.ro">vekt.ro</a>
+      <a href="/privacy.html">CONFIDENTIALITATE</a>
+      <a href="/terms.html">TERMENI</a>
+      <a href="/unsubscribe.html">DEZABONARE</a>
+      <a href="https://vekt.ro">VEKT.RO</a>
     </nav>
-    <div class="ftr__legal">© <span id="year"></span> Pharaoh Media S.R.L. · Cluj-Napoca</div>
+    <div class="ftr__legal">
+      <p>© 2026 PHARAOH MEDIA SRL</p>
+      <p>CLUJ-NAPOCA</p>
+      <p>CUI 45791703</p>
+    </div>
   </div>
 </footer>
+
+<!-- ===== COOKIE BANNER ===== -->
+<div class="cookie" id="cookie-banner" role="dialog" aria-label="Preferinte cookies" aria-hidden="true">
+  <div class="cookie__inner">
+    <p class="cookie__text">
+      Folosim cookies tehnice esentiale pentru functionarea site-ului si, optional, cookies de analiza pentru a imbunatati experienta.
+      <a href="/privacy.html#cookies">Detalii</a>
+    </p>
+    <div class="cookie__actions">
+      <button type="button" class="cookie__btn cookie__btn--reject" id="cookie-reject">REFUZA</button>
+      <button type="button" class="cookie__btn cookie__btn--essential" id="cookie-essential">DOAR ESENTIALE</button>
+      <button type="button" class="cookie__btn cookie__btn--accept" id="cookie-accept">ACCEPTA TOATE</button>
+    </div>
+  </div>
+</div>
 
 <script src="/script.js" defer></script>
 </body>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex,follow">
+<title>Dezabonare - VEKT meet</title>
+<meta name="description" content="Dezabonare de la emailurile de marketing VEKT meet.">
+<style>
+body { background:#000; color:#fff; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; margin:0; }
+.hdr { position:sticky; top:0; z-index:100; background:rgba(0,0,0,0.9); backdrop-filter:blur(20px); border-bottom:1px solid #1a1a1a; }
+.hdr__inner { max-width:1440px; margin:0 auto; padding:0 clamp(24px,6vw,80px); height:64px; display:flex; align-items:center; justify-content:space-between; }
+.hdr__logo-img { height:24px; width:auto; display:block; }
+.hdr__brand { font-size:11px; color:#555; text-transform:uppercase; letter-spacing:0.16em; }
+.page-content { max-width:720px; margin:80px auto; padding:0 clamp(24px,6vw,80px); }
+.page-content h1 { font-size:40px; font-weight:700; text-transform:uppercase; letter-spacing:-0.02em; line-height:0.95; margin-bottom:48px; }
+.page-content h2 { font-size:20px; font-weight:700; text-transform:uppercase; letter-spacing:0.16em; color:#B8860B; margin-top:48px; margin-bottom:16px; }
+.page-content h3 { font-size:18px; font-weight:700; color:#fff; margin-top:24px; margin-bottom:8px; }
+.page-content p { font-size:16px; line-height:1.7; color:#aaa; margin-bottom:16px; }
+.page-content strong { color:#fff; }
+.page-content ul { padding-left:20px; margin-bottom:16px; }
+.page-content li { font-size:16px; line-height:1.7; color:#aaa; margin-bottom:4px; }
+.page-content a { color:#B8860B; text-decoration:none; }
+.page-content hr { border:none; border-top:1px solid #1a1a1a; margin:48px 0; }
+.page-content .meta { font-size:13px; color:#555; margin-bottom:48px; }
+.page-content .back-link { display:inline-block; margin-top:48px; font-size:13px; text-transform:uppercase; letter-spacing:0.16em; color:#B8860B; text-decoration:none; border:1px solid #B8860B; padding:12px 24px; }
+.page-content .back-link:hover { background:#B8860B; color:#000; }
+.ftr { border-top:1px solid #B8860B; padding:48px clamp(24px,6vw,80px); margin-top:80px; }
+.ftr__inner { max-width:1440px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; }
+.ftr__logo-img { height:32px; width:auto; }
+.ftr__nav { display:flex; gap:20px; flex-wrap:wrap; }
+.ftr__nav a { font-size:11px; text-transform:uppercase; letter-spacing:0.16em; color:#555; text-decoration:none; }
+.ftr__legal { font-size:11px; color:#333; }
+</style>
+</head>
+<body>
+
+<header class="hdr" role="banner">
+  <div class="hdr__inner">
+    <a href="/" aria-label="VEKT meet">
+      <img class="hdr__logo-img" src="/vekt-logo.svg" alt="VEKT"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+      ><span style="display:none;font-size:16px;font-weight:700;letter-spacing:0.12em;color:#fff;">VEKT</span>
+    </a>
+    <span class="hdr__brand">meet</span>
+  </div>
+</header>
+
+<main class="page-content">
+  <h1>Dezabonare</h1>
+
+  <p>Pentru a te dezabona de la emailurile de marketing VEKT, scrie la <a href="mailto:contact@vekt.ro?subject=DEZABONARE">contact@vekt.ro</a> cu subiect <strong>"DEZABONARE"</strong> si adresa cu care te-ai inregistrat. Procesam cererea in maxim 72 ore.</p>
+
+  <p><strong>Nota:</strong> emailurile esentiale legate direct de votul tau si de confirmarea VEKT meet vor continua sa fie trimise pana la incheierea editiei pentru care te-ai inregistrat. Pentru stergere completa a tuturor datelor (drept la uitare GDPR), scrie tot la <a href="mailto:contact@vekt.ro">contact@vekt.ro</a>.</p>
+
+  <a href="/" class="back-link">Inapoi la VEKT meet</a>
+</main>
+
+<footer class="ftr">
+  <div class="ftr__inner">
+    <a href="/" aria-label="VEKT meet">
+      <img class="ftr__logo-img" src="/vekt-logo.svg" alt="VEKT"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+      ><span style="display:none;font-size:20px;font-weight:700;letter-spacing:0.12em;color:#fff;">VEKT</span>
+    </a>
+    <nav class="ftr__nav" aria-label="Footer">
+      <a href="/privacy.html">Confidentialitate</a>
+      <a href="/terms.html">Termeni</a>
+      <a href="/unsubscribe.html">Dezabonare</a>
+      <a href="https://vekt.ro">vekt.ro</a>
+    </nav>
+    <div class="ftr__legal">© <span id="year"></span> Pharaoh Media S.R.L. · Cluj-Napoca</div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

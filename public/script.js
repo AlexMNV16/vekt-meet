@@ -1,16 +1,7 @@
-// =============================================================
-// VEKT meet - script.js
-// Vanilla JS. No frameworks.
-// =============================================================
 (() => {
   'use strict';
 
-  // -------------------------------------------------------------
-  // Config
-  // -------------------------------------------------------------
-  // API base. Same-origin in production (meet.vekt.ro/api/*).
-  // Override at deploy by injecting window.VEKT_API_BASE before this script.
-  const API_BASE = (window.VEKT_API_BASE || '').replace(/\/+$/, '');
+  const API_BASE = '';  // same-origin meet.vekt.ro/api/*
 
   const COUNTY_NAMES = {
     AB:'Alba', AR:'Arad', AG:'Argeș', BC:'Bacău', BH:'Bihor',
@@ -25,405 +16,446 @@
     VS:'Vaslui', VL:'Vâlcea', VN:'Vrancea',
   };
 
-  const ERR_MSG = {
-    min_2_chars:           'Minim 2 caractere.',
-    required:              'Câmp obligatoriu.',
-    invalid_email:         'Adresă de email invalidă.',
-    invalid_phone_ro:      'Format telefon invalid. Ex: 07xx xxx xxx',
-    out_of_range:          'Anul trebuie să fie între 1950 și 2026.',
-    select_1_to_3:         'Selectează 1-3 județe pe hartă.',
-    duplicate_county:      'Ai selectat același județ de două ori.',
-    duplicate_rank:        'Ranguri duplicate.',
-    invalid_rank:          'Rang invalid.',
-    invalid_county_id:     'Județ invalid.',
-    invalid_vote_shape:    'Format selecție invalid.',
-    ranks_must_be_contiguous: 'Selectează în ordine: 1, apoi 2, apoi 3.',
-    email_exists:          'Această adresă de email este deja înregistrată.',
-    rate_limited:          'Prea multe încercări. Reîncearcă într-o oră.',
-    invalid_csrf:          'Sesiunea a expirat. Reîncarcă pagina.',
-    invalid_input:         'Verifică datele introduse.',
-    server_error:          'Eroare server. Încearcă din nou.',
-    network:               'Conexiune întreruptă. Reîncearcă.',
-  };
+  // ---- State ----
+  let picks = [];  // [{county_id, county_name, vote_rank}], max 3
+  let csrfToken = '';
+  let countyData = {};  // id -> {votes, points}
 
-  // -------------------------------------------------------------
-  // State
-  // -------------------------------------------------------------
-  /** @type {{id:string, rank:number}[]} */
-  const selection = []; // ordered: rank 1, 2, 3
-  let csrfToken = null;
-  let leaderboardTimer = null;
+  // ---- Cookie consent ----
+  // Key: 'vekt_cookie_consent', values: 'all' | 'essential' | null
+  // Valid 12 luni. La accept 'all': window.vektAnalyticsConsent = true
+  // Banner: class 'cookie--visible' pe #cookie-banner
 
-  // -------------------------------------------------------------
-  // Elements
-  // -------------------------------------------------------------
-  const $   = (s, r = document) => r.querySelector(s);
-  const $$  = (s, r = document) => Array.from(r.querySelectorAll(s));
-  const map = $('#romania-map');
-  const picksEl = $('#picks');
-  const boardEl = $('#leaderboard');
-  const formEl  = $('#vekt-form');
-  const submitBtn = $('#submit-btn');
-  const successEl = $('#success');
-  const yearEl = $('#year');
-  const csrfInput = $('#csrf');
-  const votesErrEl = $('#votes-err');
-  const resetBtn = $('#reset-selection');
+  function initCookieBanner() {
+    const stored = localStorage.getItem('vekt_cookie_consent');
+    const storedAt = localStorage.getItem('vekt_cookie_consent_at');
+    const YEAR_MS = 365 * 24 * 3600 * 1000;
+    const expired = storedAt && (Date.now() - parseInt(storedAt, 10)) > YEAR_MS;
 
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
+    if (stored && !expired) {
+      // Apply consent
+      if (stored === 'all') window.vektAnalyticsConsent = true;
+      return;
+    }
 
-  // -------------------------------------------------------------
-  // CSRF: fetch token on load (with retry)
-  // -------------------------------------------------------------
+    const banner = document.getElementById('cookie-banner');
+    if (!banner) return;
+    setTimeout(() => banner.classList.add('cookie--visible'), 800);
+
+    function saveConsent(val) {
+      localStorage.setItem('vekt_cookie_consent', val);
+      localStorage.setItem('vekt_cookie_consent_at', Date.now());
+      banner.classList.remove('cookie--visible');
+      banner.setAttribute('aria-hidden', 'true');
+      if (val === 'all') window.vektAnalyticsConsent = true;
+    }
+
+    document.getElementById('cookie-accept')?.addEventListener('click', () => saveConsent('all'));
+    document.getElementById('cookie-essential')?.addEventListener('click', () => saveConsent('essential'));
+    document.getElementById('cookie-reject')?.addEventListener('click', () => saveConsent('essential'));
+  }
+
+  // ---- CSRF ----
   async function fetchCsrf() {
     try {
-      const res = await fetch(`${API_BASE}/api/csrf`, { method: 'GET', credentials: 'omit' });
-      if (!res.ok) throw new Error(`csrf ${res.status}`);
-      const data = await res.json();
-      csrfToken = data.token;
-      if (csrfInput) csrfInput.value = csrfToken;
-    } catch (err) {
-      console.warn('csrf fetch failed', err);
-      // non-fatal at load; will be retried on submit if missing
+      const r = await fetch(`${API_BASE}/api/csrf`);
+      const d = await r.json();
+      csrfToken = d.token || '';
+    } catch (e) {
+      console.warn('csrf fetch failed', e);
     }
   }
 
-  // -------------------------------------------------------------
-  // Map: click / keyboard interaction
-  // -------------------------------------------------------------
-  function makeCountyAccessible(node) {
-    node.setAttribute('role', 'button');
-    node.setAttribute('tabindex', '0');
-    const id = node.dataset.id;
-    const name = node.dataset.name || COUNTY_NAMES[id] || id;
-    node.setAttribute('aria-label', `Județ ${name}. Apasă pentru a selecta.`);
-    node.dataset.name = name;
+  // ---- Counties / Leaderboard ----
+  async function fetchCounties() {
+    try {
+      const r = await fetch(`${API_BASE}/api/counties`);
+      const d = await r.json();
+      if (d.counties) {
+        countyData = {};
+        d.counties.forEach(c => { countyData[c.id] = c; });
+        updateCountySvgCounts();
+        renderLeaderboard(d.counties);
+      }
+    } catch (e) {
+      console.warn('counties fetch failed', e);
+    }
   }
 
-  function bindMap() {
-    if (!map) return;
-    $$('.county', map).forEach(node => {
-      makeCountyAccessible(node);
-      node.addEventListener('click', onCountyActivate);
-      node.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCountyActivate.call(node, e); }
+  function updateCountySvgCounts() {
+    document.querySelectorAll('.county').forEach(el => {
+      const id = el.dataset.id;
+      const cnt = el.querySelector('.cnt');
+      if (cnt && countyData[id]) cnt.textContent = countyData[id].points || 0;
+    });
+  }
+
+  function renderLeaderboard(counties) {
+    const board = document.getElementById('leaderboard');
+    if (!board) return;
+    const top5 = counties.filter(c => c.points > 0).slice(0, 5);
+    if (!top5.length) {
+      board.innerHTML = '<li class="board__empty">Primele voturi...</li>';
+      return;
+    }
+    const maxPts = top5[0].points || 1;
+    board.innerHTML = top5.map((c, i) => `
+      <li class="board__row">
+        <span class="board__pos">${String(i + 1).padStart(2, '0')}</span>
+        <span class="board__name">${c.name}</span>
+        <span class="board__bar-wrap"><span class="board__bar" style="transform:scaleX(${c.points / maxPts})"></span></span>
+        <span class="board__pts">${c.points}</span>
+      </li>
+    `).join('');
+    // Animate bars after paint
+    requestAnimationFrame(() => {
+      board.querySelectorAll('.board__bar').forEach(b => {
+        b.style.transition = 'transform 0.8s ease-out';
       });
     });
   }
 
-  function onCountyActivate(e) {
-    const id = this.dataset.id;
-    if (!id || !COUNTY_NAMES[id]) return;
-    toggleSelection(id);
+  // ---- Map interaction ----
+  function initMap() {
+    const svg = document.getElementById('romania-map');
+    if (!svg) return;
+
+    // Tooltip
+    const tooltip = document.getElementById('map-tooltip');
+
+    svg.addEventListener('click', e => {
+      const county = e.target.closest('.county');
+      if (!county) return;
+      toggleCounty(county.dataset.id, county.dataset.name);
+    });
+
+    if (tooltip) {
+      svg.addEventListener('mousemove', e => {
+        const county = e.target.closest('.county');
+        if (!county) { tooltip.style.opacity = '0'; return; }
+        const id = county.dataset.id;
+        const name = county.dataset.name;
+        const pts = countyData[id]?.points ?? 0;
+        tooltip.querySelector('.map__tooltip-name').textContent = name;
+        tooltip.querySelector('.map__tooltip-pts').textContent = pts ? `${pts} pct` : '';
+        const rect = svg.getBoundingClientRect();
+        tooltip.style.left = (e.clientX - rect.left + 12) + 'px';
+        tooltip.style.top  = (e.clientY - rect.top - 8) + 'px';
+        tooltip.style.opacity = '1';
+      });
+      svg.addEventListener('mouseleave', () => { tooltip.style.opacity = '0'; });
+    }
+
+    // Touch tooltip (show briefly on tap before toggle)
+    svg.addEventListener('touchstart', e => {
+      const county = e.target.closest('.county');
+      if (!county || !tooltip) return;
+      tooltip.querySelector('.map__tooltip-name').textContent = county.dataset.name;
+      tooltip.querySelector('.map__tooltip-pts').textContent = '';
+      tooltip.style.opacity = '1';
+      setTimeout(() => { tooltip.style.opacity = '0'; }, 1200);
+    }, { passive: true });
   }
 
-  function toggleSelection(id) {
-    const idx = selection.findIndex(s => s.id === id);
-    if (idx !== -1) {
-      // Deselect; collapse ranks
-      selection.splice(idx, 1);
-      selection.forEach((s, i) => s.rank = i + 1);
+  function toggleCounty(id, name) {
+    const existing = picks.findIndex(p => p.county_id === id);
+    if (existing !== -1) {
+      // Deselect
+      picks.splice(existing, 1);
+      // Re-rank remaining
+      picks = picks.map((p, i) => ({ ...p, vote_rank: i + 1 }));
     } else {
-      if (selection.length >= 3) {
-        flashVotesError('Maxim 3 selecții. Apasă din nou pe un județ pentru a-l elimina.');
-        return;
-      }
-      selection.push({ id, rank: selection.length + 1 });
+      if (picks.length >= 3) return;  // max 3
+      picks.push({ county_id: id, county_name: name, vote_rank: picks.length + 1 });
     }
-    renderSelection();
+    updateMapState();
+    updatePicksList();
     clearVotesError();
   }
 
-  function renderSelection() {
-    // SVG classes
-    $$('.county', map).forEach(node => {
-      node.classList.remove('is-sel-1', 'is-sel-2', 'is-sel-3');
-      node.removeAttribute('aria-pressed');
-      const sel = selection.find(s => s.id === node.dataset.id);
-      if (sel) {
-        node.classList.add(`is-sel-${sel.rank}`);
-        node.setAttribute('aria-pressed', 'true');
+  function updateMapState() {
+    document.querySelectorAll('.county').forEach(el => {
+      const id = el.dataset.id;
+      const pick = picks.find(p => p.county_id === id);
+      if (pick) {
+        el.setAttribute('data-rank', pick.vote_rank);
       } else {
-        node.setAttribute('aria-pressed', 'false');
+        el.removeAttribute('data-rank');
       }
     });
+  }
 
-    // Picks list
-    const picks = $$('.pick', picksEl);
-    picks.forEach((li, i) => {
-      const rank = i + 1;
-      const nameEl = $('.pick__name', li);
-      const sel = selection.find(s => s.rank === rank);
-      if (sel) {
-        nameEl.textContent = COUNTY_NAMES[sel.id];
+  function updatePicksList() {
+    const list = document.getElementById('picks');
+    if (!list) return;
+    [1, 2, 3].forEach(rank => {
+      const li = list.querySelector(`[data-rank="${rank}"]`);
+      if (!li) return;
+      const nameEl = li.querySelector('.pick__name');
+      const pick = picks.find(p => p.vote_rank === rank);
+      if (pick) {
+        nameEl.textContent = pick.county_name;
         nameEl.classList.remove('pick__name--empty');
       } else {
-        const placeholder = ['Prima alegere', 'A doua alegere', 'A treia alegere'][i];
-        nameEl.textContent = placeholder;
+        const defaults = ['Prima alegere', 'A doua alegere', 'A treia alegere'];
+        nameEl.textContent = defaults[rank - 1];
         nameEl.classList.add('pick__name--empty');
       }
     });
   }
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      selection.length = 0;
-      renderSelection();
+  function clearVotesError() {
+    const el = document.getElementById('votes-err');
+    if (el) el.textContent = '';
+  }
+
+  // ---- Reset ----
+  function initReset() {
+    document.getElementById('reset-selection')?.addEventListener('click', () => {
+      picks = [];
+      updateMapState();
+      updatePicksList();
       clearVotesError();
     });
   }
 
-  // -------------------------------------------------------------
-  // Leaderboard (live)
-  // -------------------------------------------------------------
-  async function fetchCounties() {
-    try {
-      const res = await fetch(`${API_BASE}/api/counties`, { method: 'GET' });
-      if (!res.ok) throw new Error(`counties ${res.status}`);
-      const data = await res.json();
-      return Array.isArray(data.counties) ? data.counties : [];
-    } catch (err) {
-      console.warn('counties fetch failed', err);
-      return [];
+  // ---- Validation helpers ----
+  const ERR = {
+    required: 'Câmp obligatoriu.',
+    min_2_chars: 'Minim 2 caractere.',
+    invalid_email: 'Email invalid.',
+    invalid_phone: 'Telefon invalid.',
+    invalid_an: 'An invalid (1950-2026).',
+    privacy_required: 'Trebuie să fii de acord cu politica de confidențialitate.',
+    min_1_vote: 'Selectează cel puțin un județ.',
+  };
+
+  function validateField(input) {
+    const id = input.id;
+    const val = input.value.trim();
+    let err = '';
+
+    if (input.required && !val) { err = ERR.required; }
+    else if (id === 'prenume' || id === 'nume') { if (val.length < 2) err = ERR.min_2_chars; }
+    else if (id === 'email') { if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val)) err = ERR.invalid_email; }
+    else if (id === 'telefon' && val) { if (!/^[\d\s+\-()]{6,20}$/.test(val)) err = ERR.invalid_phone; }
+    else if (id === 'an_fabricatie') {
+      const an = parseInt(val, 10);
+      if (isNaN(an) || an < 1950 || an > new Date().getFullYear() + 1) err = ERR.invalid_an;
     }
+    else if (id === 'privacy_consent' && !input.checked) { err = ERR.privacy_required; }
+
+    const errEl = document.querySelector(`[data-for="${id}"]`);
+    if (errEl) errEl.textContent = err;
+    return !err;
   }
 
-  function renderCountyCounts(rows) {
-    // Update vote count text inside SVG
-    const map = new Map(rows.map(r => [r.county_id, r]));
-    $$('.county').forEach(node => {
-      const id = node.dataset.id;
-      const row = map.get(id);
-      const cntEl = $('.cnt', node);
-      if (cntEl && row) cntEl.textContent = String(row.total_votes ?? 0);
-    });
-  }
-
-  function renderLeaderboard(rows) {
-    if (!boardEl) return;
-    if (!rows.length || rows.every(r => (r.total_points ?? 0) === 0)) {
-      boardEl.innerHTML = '<li class="board__row board__row--empty">Așteaptă primele voturi.</li>';
-      return;
-    }
-    const top = rows
-      .filter(r => (r.total_points ?? 0) > 0)
-      .slice(0, 5);
-    if (!top.length) {
-      boardEl.innerHTML = '<li class="board__row board__row--empty">Așteaptă primele voturi.</li>';
-      return;
-    }
-    const max = top[0].total_points || 1;
-    boardEl.innerHTML = top.map((r, i) => {
-      const w = Math.max(0.05, (r.total_points || 0) / max);
-      return `
-        <li class="board__row">
-          <span class="board__rank">${String(i + 1).padStart(2, '0')}</span>
-          <span class="board__name">${escapeHtml(r.county_name)}</span>
-          <span class="board__pts"><strong>${r.total_points}</strong> pct</span>
-          <span class="board__bar" aria-hidden="true"><i style="--w:${w}"></i></span>
-        </li>`;
-    }).join('');
-  }
-
-  async function refreshLeaderboard() {
-    const rows = await fetchCounties();
-    renderCountyCounts(rows);
-    renderLeaderboard(rows);
-  }
-
-  function startLeaderboardPolling() {
-    refreshLeaderboard();
-    // Poll every 30s while tab visible
-    leaderboardTimer = setInterval(() => {
-      if (document.visibilityState === 'visible') refreshLeaderboard();
-    }, 30000);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') refreshLeaderboard();
-    });
-  }
-
-  // -------------------------------------------------------------
-  // Form: client-side validation
-  // -------------------------------------------------------------
-  function setFieldError(field, msg) {
-    const input = $(`#${field}`);
-    const err = $(`.field__err[data-for="${field}"]`);
-    if (input) input.setAttribute('aria-invalid', msg ? 'true' : 'false');
-    if (err) err.textContent = msg || '';
-  }
-
-  function clearAllFieldErrors() {
-    $$('.field__err').forEach(e => { e.textContent = ''; });
-    $$('.field__in').forEach(i => i.removeAttribute('aria-invalid'));
-    clearVotesError();
-  }
-
-  function flashVotesError(msg) {
-    if (votesErrEl) votesErrEl.textContent = msg;
-  }
-  function clearVotesError() {
-    if (votesErrEl) votesErrEl.textContent = '';
-  }
-
-  function validateClient(formData) {
-    let ok = true;
-
-    const prenume = (formData.prenume || '').trim();
-    if (prenume.length < 2) { setFieldError('prenume', ERR_MSG.min_2_chars); ok = false; }
-
-    const nume = (formData.nume || '').trim();
-    if (nume.length < 2) { setFieldError('nume', ERR_MSG.min_2_chars); ok = false; }
-
-    const email = (formData.email || '').trim();
-    if (!/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/i.test(email)) {
-      setFieldError('email', ERR_MSG.invalid_email); ok = false;
-    }
-
-    if (formData.telefon) {
-      const cleaned = String(formData.telefon).replace(/[\s.\-()]/g, '');
-      if (!/^(?:\+?40|0)7\d{8}$/.test(cleaned)) {
-        setFieldError('telefon', ERR_MSG.invalid_phone_ro); ok = false;
-      }
-    }
-
-    if (!(formData.marca_masina || '').trim()) { setFieldError('marca_masina', ERR_MSG.required); ok = false; }
-    if (!(formData.model_masina || '').trim()) { setFieldError('model_masina', ERR_MSG.required); ok = false; }
-
-    const an = parseInt(formData.an_fabricatie, 10);
-    if (!Number.isInteger(an) || an < 1950 || an > 2026) { setFieldError('an_fabricatie', ERR_MSG.out_of_range); ok = false; }
-
-    if (selection.length < 1) { flashVotesError(ERR_MSG.select_1_to_3); ok = false; }
-
-    return ok;
-  }
-
-  // -------------------------------------------------------------
-  // Submit
-  // -------------------------------------------------------------
-  async function onSubmit(e) {
-    e.preventDefault();
-    clearAllFieldErrors();
-
-    const fd = new FormData(formEl);
-    const payload = {
-      prenume:           fd.get('prenume'),
-      nume:              fd.get('nume'),
-      email:             fd.get('email'),
-      telefon:           fd.get('telefon') || null,
-      marca_masina:      fd.get('marca_masina'),
-      model_masina:      fd.get('model_masina'),
-      an_fabricatie:     parseInt(fd.get('an_fabricatie'), 10),
-      marketing_consent: !!fd.get('marketing_consent'),
-      privacy_consent:   !!fd.get('privacy_consent'),
-      votes:             selection.map(s => ({ id: s.id, rank: s.rank })),
-    };
-
-    if (!validateClient(payload)) {
-      // Focus first invalid
-      const firstInvalid = $('[aria-invalid="true"]') || (selection.length === 0 ? map : null);
-      if (firstInvalid && firstInvalid.scrollIntoView) {
-        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (firstInvalid.focus) firstInvalid.focus();
-      }
-      return;
-    }
-
-    if (!payload.privacy_consent) {
-      // Browser will already block via required, but double-check
-      return;
-    }
-
-    if (!csrfToken) {
-      await fetchCsrf();
-      if (!csrfToken) {
-        flashVotesError(ERR_MSG.invalid_csrf);
-        return;
-      }
-    }
-
-    submitBtn.classList.add('is-loading');
-    submitBtn.disabled = true;
-
-    try {
-      const res = await fetch(`${API_BASE}/api/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify(payload),
+  function initValidation() {
+    document.querySelectorAll('.field__in').forEach(input => {
+      input.addEventListener('blur', () => validateField(input));
+      input.addEventListener('input', () => {
+        const errEl = document.querySelector(`[data-for="${input.id}"]`);
+        if (errEl && errEl.textContent) validateField(input);
       });
+    });
+    document.getElementById('privacy_consent')?.addEventListener('change', e => validateField(e.target));
+  }
 
-      if (res.ok) {
-        showSuccess();
-        // refresh leaderboard once after submit
-        refreshLeaderboard();
-        return;
+  // ---- Form submit ----
+  function initForm() {
+    const form = document.getElementById('vekt-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      // Validate all fields
+      let valid = true;
+      form.querySelectorAll('.field__in').forEach(input => {
+        if (!validateField(input)) valid = false;
+      });
+      const privacyCb = document.getElementById('privacy_consent');
+      if (privacyCb && !validateField(privacyCb)) valid = false;
+
+      // Validate votes
+      const votesErr = document.getElementById('votes-err');
+      if (picks.length < 1) {
+        if (votesErr) votesErr.textContent = ERR.min_1_vote;
+        valid = false;
       }
 
-      // Handle structured errors
-      let data = null;
-      try { data = await res.json(); } catch {}
-      const code = data?.error || 'server_error';
+      if (!valid) return;
 
-      if (code === 'invalid_input' && data?.fields) {
-        for (const [k, v] of Object.entries(data.fields)) {
-          if (k === 'votes') flashVotesError(ERR_MSG[v] || ERR_MSG.select_1_to_3);
-          else setFieldError(k, ERR_MSG[v] || ERR_MSG.required);
+      const btn = document.getElementById('submit-btn');
+      const btnTxt = btn?.querySelector('.cta__txt');
+      if (btn) btn.disabled = true;
+      if (btnTxt) btnTxt.textContent = 'SE TRIMITE...';
+
+      const data = {
+        csrf:              csrfToken,
+        prenume:           form.prenume.value.trim(),
+        nume:              form.nume.value.trim(),
+        email:             form.email.value.trim(),
+        telefon:           form.telefon?.value?.trim() || '',
+        marca_masina:      form.marca_masina.value.trim(),
+        model_masina:      form.model_masina.value.trim(),
+        an_fabricatie:     parseInt(form.an_fabricatie.value, 10),
+        marketing_consent: form.marketing_consent?.checked || false,
+        privacy_consent:   true,
+        votes:             picks,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/register`, {
+          method:  'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (res.ok && result.ok) {
+          showSuccess();
+        } else {
+          handleSubmitError(result.error, btn, btnTxt);
         }
-      } else if (code === 'email_exists') {
-        setFieldError('email', ERR_MSG.email_exists);
-      } else if (code === 'rate_limited') {
-        flashVotesError(ERR_MSG.rate_limited);
-      } else if (code === 'invalid_csrf') {
-        // refetch and ask user to retry
-        csrfToken = null;
-        await fetchCsrf();
-        flashVotesError(ERR_MSG.invalid_csrf);
-      } else {
-        flashVotesError(ERR_MSG.server_error);
+      } catch (err) {
+        console.error('submit error', err);
+        if (btn) btn.disabled = false;
+        if (btnTxt) btnTxt.textContent = 'VOTEAZĂ ȘI ÎNSCRIE-TE';
+        if (votesErr) votesErr.textContent = 'Eroare de rețea. Încearcă din nou.';
       }
-    } catch (err) {
-      console.error('submit failed', err);
-      flashVotesError(ERR_MSG.network);
-    } finally {
-      submitBtn.classList.remove('is-loading');
-      submitBtn.disabled = false;
-    }
+    });
+  }
+
+  function handleSubmitError(errCode, btn, btnTxt) {
+    const msg = {
+      email_exists:    'Această adresă de email a fost deja înregistrată.',
+      rate_limited:    'Prea multe încercări. Încearcă mai târziu.',
+      invalid_csrf:    'Token expirat. Reîncarcă pagina.',
+      duplicate_vote:  'Vot duplicat detectat.',
+      db_error:        'Eroare server. Încearcă din nou.',
+    }[errCode] || 'Eroare. Încearcă din nou.';
+
+    const votesErr = document.getElementById('votes-err');
+    if (votesErr) votesErr.textContent = msg;
+    if (btn) btn.disabled = false;
+    if (btnTxt) btnTxt.textContent = 'VOTEAZĂ ȘI ÎNSCRIE-TE';
   }
 
   function showSuccess() {
-    formEl.hidden = true;
-    successEl.hidden = false;
-    successEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    if (leaderboardTimer) clearInterval(leaderboardTimer);
+    const form = document.getElementById('vekt-form');
+    const success = document.getElementById('success');
+    if (form) form.hidden = true;
+    if (!success) return;
+    success.hidden = false;
+
+    // Populate voted counties list
+    const list = document.getElementById('success-picks');
+    if (list) {
+      const labels = ['Prima alegere', 'A doua alegere', 'A treia alegere'];
+      list.innerHTML = picks
+        .sort((a, b) => a.vote_rank - b.vote_rank)
+        .map(p => `<li><span class="pick-rank">${labels[p.vote_rank - 1]}</span>${p.county_name}</li>`)
+        .join('');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // -------------------------------------------------------------
-  // Misc
-  // -------------------------------------------------------------
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
+  // ---- Scroll animations (IntersectionObserver) ----
+  function initAnimations() {
+    const pref = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (pref) return;
 
-  // Strip leading +40/0 for cleaner display? Keep raw input as user typed.
-  // Live-clear errors on input
-  $$('.field__in').forEach(input => {
-    input.addEventListener('input', () => {
-      if (input.getAttribute('aria-invalid') === 'true') {
-        setFieldError(input.id, '');
-      }
+    // Generic reveal
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) { e.target.classList.add('revealed'); obs.unobserve(e.target); }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+    // Manifesto clip-path reveal
+    const manifesto = document.querySelector('.manifesto__text');
+    if (manifesto) {
+      manifesto.style.clipPath = 'inset(0 100% 0 0)';
+      const mObs = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          manifesto.style.transition = 'clip-path 800ms cubic-bezier(.7,0,.3,1)';
+          manifesto.style.clipPath = 'inset(0 0% 0 0)';
+          mObs.disconnect();
+        }
+      }, { threshold: 0.3 });
+      mObs.observe(manifesto);
+    }
+
+    // Map counties pulse on first appear
+    const mapEl = document.getElementById('romania-map');
+    if (mapEl) {
+      const mapObs = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) {
+          document.querySelectorAll('.county').forEach((el, i) => {
+            setTimeout(() => el.classList.add('county--appeared'), Math.random() * 400);
+          });
+          mapObs.disconnect();
+        }
+      }, { threshold: 0.1 });
+      mapObs.observe(mapEl);
+    }
+
+    // Hero title stagger
+    document.querySelectorAll('.hero__line').forEach((line, i) => {
+      line.style.opacity = '0';
+      line.style.transform = 'translateY(20px)';
+      line.style.transition = `opacity 0.6s ease-out ${i * 100}ms, transform 0.6s ease-out ${i * 100}ms`;
     });
-  });
+    const heroSub = document.querySelector('.hero__sub');
+    if (heroSub) {
+      heroSub.style.opacity = '0';
+      heroSub.style.transform = 'translateY(20px)';
+      heroSub.style.transition = 'opacity 0.6s ease-out 200ms, transform 0.6s ease-out 200ms';
+    }
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        document.querySelectorAll('.hero__line, .hero__sub').forEach(el => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        });
+      }, 100);
+    });
+  }
 
-  // -------------------------------------------------------------
-  // Init
-  // -------------------------------------------------------------
-  bindMap();
-  renderSelection();
-  fetchCsrf();
-  startLeaderboardPolling();
-  formEl.addEventListener('submit', onSubmit);
+  // ---- Year in footer ----
+  function initYear() {
+    const el = document.getElementById('year');
+    if (el) el.textContent = new Date().getFullYear();
+  }
+
+  // ---- Periodic leaderboard refresh ----
+  function startLeaderboardPolling() {
+    setInterval(fetchCounties, 30000);
+  }
+
+  // ---- Init ----
+  function init() {
+    initCookieBanner();
+    initYear();
+    initMap();
+    initReset();
+    initValidation();
+    initForm();
+    initAnimations();
+    fetchCsrf();
+    fetchCounties();
+    startLeaderboardPolling();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
