@@ -72,7 +72,7 @@ details summary::-webkit-details-marker { display: none; }
   overflow: hidden;
 }
 .manifesto__text {
-  font-size: clamp(24px, 4vw, 56px);
+  font-size: clamp(18px, 4vw, 56px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: var(--track-title);
@@ -312,16 +312,26 @@ details[open] .faq__chevron { transform: rotate(-135deg); margin-top: 4px; }
 }
 
 @media (max-width: 768px) {
-  .hero { min-height: 80vh; }
+  .hero { min-height: 85vh; padding-bottom: 60px; }
+  .hero__sub { font-size: 16px; }
+  .steps { padding: 60px 0; }
   .steps__grid { grid-template-columns: 1fr; gap: 40px; }
   .step__num { font-size: 64px; }
+  .vote { padding: 60px 0 80px; }
+  .vote__layout { grid-template-columns: 1fr; gap: 32px; }
+  .side { flex-direction: column; }
+  .side__block { min-width: 0; flex: none; }
   .form__row--2, .form__row--3 { grid-template-columns: 1fr; gap: 0; }
   .ftr__inner { grid-template-columns: 1fr; gap: 40px; }
   .cookie__inner { flex-direction: column; align-items: flex-start; gap: 16px; }
   .cookie__actions { flex-wrap: wrap; }
   .success__num { font-size: 80px; }
+  .success__title { font-size: clamp(32px, 8vw, 64px); }
   .field__in { font-size: 16px; }
   .pick, .board__row, .faq__q, .side__reset, .cookie__btn { min-height: 44px; }
+  .manifesto { padding: 24px var(--pad-x); }
+  .faq { padding: 60px 0; }
+  .form-sec { padding: 0 0 80px; }
 }
 
 @media (max-width: 480px) {
