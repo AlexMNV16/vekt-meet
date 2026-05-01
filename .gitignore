@@ -4,3 +4,4 @@ node_modules/
 *.log
 .dev.vars
 judete.geojson
+package-lock.json
