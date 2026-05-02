@@ -215,37 +215,76 @@ async function handleRegister(request, env) {
 
   const votes = body.votes;
 
-  const payload = {
-    prenume:           body.prenume.trim(),
+  const email_lc = body.email.trim().toLowerCase();
+  const prenume  = body.prenume.trim();
+  const now      = new Date().toISOString();
+  const mc       = !!body.marketing_consent;
+  const ua       = request.headers.get('User-Agent') || '';
+
+  // 1. Check duplicate email
+  const dupRes = await sbFetch(env, `GET /rest/v1/users?email=eq.${encodeURIComponent(email_lc)}&select=id`, null);
+  if (dupRes.ok && Array.isArray(dupRes.data) && dupRes.data.length > 0) {
+    return json({ error: 'email_exists' }, 409);
+  }
+
+  // 2. Insert user
+  const userRes = await sbFetch(env, 'POST /rest/v1/users', {
+    prenume,
     nume:              body.nume.trim(),
-    email:             body.email.trim().toLowerCase(),
-    telefon:           body.telefon?.trim() || '',
+    email:             email_lc,
+    telefon:           body.telefon?.trim() || null,
     marca_masina:      body.marca_masina.trim(),
     model_masina:      body.model_masina.trim(),
     an_fabricatie:     Number(body.an_fabricatie),
-    marketing_consent: !!body.marketing_consent,
-    votes:             votes.map(v => ({
-      county_id:   v.county_id,
-      county_name: COUNTY_NAMES[v.county_id] || v.county_id,
-      vote_rank:   v.vote_rank,
-    })),
+    marketing_consent: mc,
+    marketing_consent_at: mc ? now : null,
+    privacy_consent_at:   now,
     ip_address: ip,
-    user_agent: request.headers.get('User-Agent') || '',
-  };
-
-  const rpcRes = await sbFetch(env, 'POST /rest/v1/rpc/register_vote', payload);
-  const result = rpcRes.data;
-
-  if (!rpcRes.ok || result?.error) {
-    const errCode = result?.error || 'db_error';
-    if (errCode === 'email_exists')   return json({ error: 'email_exists' }, 409);
-    if (errCode === 'duplicate_vote') return json({ error: 'duplicate_vote' }, 409);
-    console.error('rpc error', result);
+    user_agent: ua,
+  });
+  if (!userRes.ok) {
+    const e = userRes.data;
+    if (e?.code === '23505') return json({ error: 'email_exists' }, 409);
+    console.error('user insert error', e);
     return json({ error: 'db_error' }, 500);
   }
+  const userId = Array.isArray(userRes.data) ? userRes.data[0]?.id : userRes.data?.id;
+
+  // 3. Insert votes + upsert county totals
+  for (const v of votes) {
+    const points = 4 - v.vote_rank;
+    const cname  = COUNTY_NAMES[v.county_id] || v.county_id;
+
+    await sbFetch(env, 'POST /rest/v1/county_votes', {
+      user_id:     userId,
+      county_id:   v.county_id,
+      county_name: cname,
+      vote_rank:   v.vote_rank,
+      points,
+    });
+
+    // Increment county totals: GET current, then PATCH with incremented values
+    const curRes = await sbFetch(env, `GET /rest/v1/county_totals?county_id=eq.${v.county_id}&select=total_votes,total_points`, null);
+    if (curRes.ok && Array.isArray(curRes.data) && curRes.data.length > 0) {
+      const cur = curRes.data[0];
+      await sbFetch(env, `PATCH /rest/v1/county_totals?county_id=eq.${v.county_id}`, {
+        total_votes:  (cur.total_votes  || 0) + 1,
+        total_points: (cur.total_points || 0) + points,
+        last_updated: now,
+      });
+    } else {
+      await sbFetch(env, 'POST /rest/v1/county_totals', {
+        county_id: v.county_id, county_name: cname,
+        total_votes: 1, total_points: points, last_updated: now,
+      });
+    }
+  }
+
+  // 4. Rate limit log
+  await sbFetch(env, 'POST /rest/v1/rate_limits', { ip_address: ip });
 
   try {
-    await sendEmail(env, body.email.trim().toLowerCase(), body.prenume.trim(), votes);
+    await sendEmail(env, email_lc, prenume, votes);
   } catch (e) {
     console.error('email failed', e);
   }
