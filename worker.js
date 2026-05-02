@@ -354,7 +354,7 @@ async function sendEmail(env, toEmail, prenume, votes) {
     <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#000;border:1px solid #1a1a1a;">
       <tr><td style="padding:40px 48px 32px;border-bottom:1px solid #1a1a1a;">
         <a href="${env.PUBLIC_SITE_URL}" style="text-decoration:none;">
-          <img src="${env.PUBLIC_SITE_URL}/assets/vekt-logo.png" width="80" alt="VEKT" style="display:block;">
+          <img src="${env.PUBLIC_SITE_URL}/assets/vekt%20meet.png" width="80" alt="VEKT" style="display:block;">
         </a>
       </td></tr>
       <tr><td style="padding:48px 48px 0;">
