@@ -25,11 +25,16 @@ body { background:#000; color:#fff; font-family:'Helvetica Neue',Helvetica,Arial
 .page-content a { color:#B8860B; text-decoration:none; }
 .page-content hr { border:none; border-top:1px solid #1a1a1a; margin:48px 0; }
 .page-content .meta { font-size:13px; color:#555; margin-bottom:48px; }
-.ftr { border-top:1px solid #B8860B; padding:48px clamp(24px,6vw,80px); margin-top:80px; }
-.ftr__inner { max-width:1440px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap; }
-.ftr__logo-img { height:32px; width:auto; }
+.ftr { border-top:1px solid #B8860B; padding:48px clamp(24px,6vw,80px) 32px; margin-top:80px; }
+.ftr__inner { max-width:1440px; margin:0 auto; }
+.ftr__top { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; gap:24px; flex-wrap:wrap; }
+.ftr__logos { display:flex; align-items:center; gap:20px; }
+.ftr__logo-link { display:inline-flex; align-items:center; }
+.ftr__logo-img { height:40px; width:auto; display:block; }
+.ftr__logo-sep { display:block; width:1px; height:32px; background:#2a2a2a; flex-shrink:0; }
 .ftr__nav { display:flex; gap:20px; flex-wrap:wrap; }
 .ftr__nav a { font-size:11px; text-transform:uppercase; letter-spacing:0.16em; color:#555; text-decoration:none; }
+.ftr__bottom { border-top:1px solid #1a1a1a; padding-top:20px; }
 .ftr__legal { font-size:11px; color:#333; }
 </style>
 </head>
@@ -152,18 +157,27 @@ body { background:#000; color:#fff; font-family:'Helvetica Neue',Helvetica,Arial
 
 <footer class="ftr">
   <div class="ftr__inner">
-    <a href="/" aria-label="VEKT meet">
-      <img class="ftr__logo-img" src="/assets/vekt%20meet.svg" alt="VEKT"
-        onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
-      ><span style="display:none;font-size:20px;font-weight:700;letter-spacing:0.12em;color:#fff;">VEKT</span>
-    </a>
-    <nav class="ftr__nav" aria-label="Footer">
-      <a href="/privacy.html">Confidentialitate</a>
-      <a href="/terms.html">Termeni</a>
-      <a href="/unsubscribe.html">Dezabonare</a>
-      <a href="https://vekt.ro" target="_blank" rel="noopener" aria-label="VEKT"><img src="/assets/logo%20main%20site.svg" alt="VEKT" style="height:20px;width:auto;display:inline-block;vertical-align:middle;"></a>
-    </nav>
-    <div class="ftr__legal">© <span id="year"></span> Pharaoh Media S.R.L. · Cluj-Napoca</div>
+    <div class="ftr__top">
+      <div class="ftr__logos">
+        <a href="/" aria-label="VEKT meet" class="ftr__logo-link">
+          <img class="ftr__logo-img" src="/assets/vekt%20meet.svg" alt="VEKT meet"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+          ><span style="display:none;font-size:20px;font-weight:700;letter-spacing:0.12em;color:#fff;">VEKT MEET</span>
+        </a>
+        <span class="ftr__logo-sep"></span>
+        <a href="https://vekt.ro" target="_blank" rel="noopener" aria-label="VEKT" class="ftr__logo-link">
+          <img class="ftr__logo-img" src="/assets/logo%20main%20site.svg" alt="VEKT">
+        </a>
+      </div>
+      <nav class="ftr__nav" aria-label="Footer">
+        <a href="/privacy.html">Confidentialitate</a>
+        <a href="/terms.html">Termeni</a>
+        <a href="/unsubscribe.html">Dezabonare</a>
+      </nav>
+    </div>
+    <div class="ftr__bottom">
+      <p class="ftr__legal">© <span id="year"></span> Pharaoh Media S.R.L. &nbsp;·&nbsp; Cluj-Napoca &nbsp;·&nbsp; CUI 45791703</p>
+    </div>
   </div>
 </footer>
 
