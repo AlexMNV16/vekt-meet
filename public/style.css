@@ -251,7 +251,7 @@ input:-webkit-autofill:focus {
 .success__picks { list-style: none; margin-bottom: 48px; display: flex; flex-direction: column; gap: 10px; }
 .success__picks li { font-size: 16px; display: flex; align-items: center; gap: 12px; justify-content: center; }
 .pick-rank { color: var(--copper-dark); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; min-width: 90px; text-align: right; flex-shrink: 0; }
-.success__back { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: var(--track-wide); color: var(--copper-dark); border: 1px solid var(--copper-dark); padding: 16px 36px; text-decoration: none; transition: background 0.2s, color 0.2s; }
+.success__back { display: inline-block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: var(--track-wide); color: var(--copper-dark); border: 1px solid var(--copper-dark); padding: 16px 36px; text-decoration: none; transition: background 0.2s, color 0.2s; background: transparent; cursor: pointer; font-family: var(--font); }
 .success__back:hover { background: var(--copper-dark); color: #000; }
 
 /* =============================================================

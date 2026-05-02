@@ -438,16 +438,22 @@ body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,san
       </div>
 
       <div class="consent">
-        <label class="check">
-          <input type="checkbox" id="marketing_consent" name="marketing_consent">
-          <span class="check__box" aria-hidden="true"></span>
-          <span class="check__txt">Vreau sa primesc emailuri despre VEKT meet si produse VEKT. Ma pot dezabona oricand.</span>
-        </label>
-        <label class="check">
-          <input type="checkbox" id="privacy_consent" name="privacy_consent" required>
-          <span class="check__box" aria-hidden="true"></span>
-          <span class="check__txt">Sunt de acord cu <a href="/privacy.html" target="_blank" rel="noopener">politica de confidentialitate</a>. <span class="req" aria-hidden="true">*</span></span>
-        </label>
+        <div>
+          <label class="check">
+            <input type="checkbox" id="marketing_consent" name="marketing_consent" required>
+            <span class="check__box" aria-hidden="true"></span>
+            <span class="check__txt">Vreau sa primesc emailuri despre VEKT meet si produse VEKT. Ma pot dezabona oricand. <span class="req" aria-hidden="true">*</span></span>
+          </label>
+          <small class="field__err" data-for="marketing_consent" role="alert"></small>
+        </div>
+        <div>
+          <label class="check">
+            <input type="checkbox" id="privacy_consent" name="privacy_consent" required>
+            <span class="check__box" aria-hidden="true"></span>
+            <span class="check__txt">Sunt de acord cu <a href="/privacy.html" target="_blank" rel="noopener">politica de confidentialitate</a>. <span class="req" aria-hidden="true">*</span></span>
+          </label>
+          <small class="field__err" data-for="privacy_consent" role="alert"></small>
+        </div>
       </div>
 
       <small class="field__err field__err--votes" id="votes-err" role="alert"></small>
@@ -466,7 +472,7 @@ body{background:#000;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,san
         <h2 class="success__title">AI VOTAT.</h2>
         <p class="success__msg">Cand VEKT meet se confirma in judetul tau, primesti email.</p>
         <ol class="success__picks" id="success-picks"></ol>
-        <a href="/#harta" class="success__back">INAPOI LA HARTA</a>
+        <button type="button" id="success-back" class="success__back">INAPOI LA HARTA</button>
       </div>
     </div>
   </div>

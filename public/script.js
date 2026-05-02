@@ -226,6 +226,7 @@
     invalid_phone: 'Telefon invalid.',
     invalid_an: 'An invalid (1950-2026).',
     privacy_required: 'Trebuie să fii de acord cu politica de confidențialitate.',
+    marketing_required: 'Consimțământul pentru comunicări VEKT este obligatoriu.',
     min_1_vote: 'Selectează cel puțin un județ.',
   };
 
@@ -243,6 +244,7 @@
       if (isNaN(an) || an < 1950 || an > new Date().getFullYear() + 1) err = ERR.invalid_an;
     }
     else if (id === 'privacy_consent' && !input.checked) { err = ERR.privacy_required; }
+    else if (id === 'marketing_consent' && !input.checked) { err = ERR.marketing_required; }
 
     const errEl = document.querySelector(`[data-for="${id}"]`);
     if (errEl) errEl.textContent = err;
@@ -258,6 +260,7 @@
       });
     });
     document.getElementById('privacy_consent')?.addEventListener('change', e => validateField(e.target));
+    document.getElementById('marketing_consent')?.addEventListener('change', e => validateField(e.target));
   }
 
   // ---- Form submit ----
@@ -275,6 +278,8 @@
       });
       const privacyCb = document.getElementById('privacy_consent');
       if (privacyCb && !validateField(privacyCb)) valid = false;
+      const marketingCb = document.getElementById('marketing_consent');
+      if (marketingCb && !validateField(marketingCb)) valid = false;
 
       // Validate votes
       const votesErr = document.getElementById('votes-err');
@@ -361,6 +366,13 @@
         .join('');
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    document.getElementById('success-back')?.addEventListener('click', () => {
+      success.hidden = true;
+      if (form) form.hidden = false;
+      const harta = document.getElementById('harta');
+      if (harta) harta.scrollIntoView({ behavior: 'smooth' });
+    }, { once: true });
   }
 
   // ---- Scroll animations (IntersectionObserver) ----
