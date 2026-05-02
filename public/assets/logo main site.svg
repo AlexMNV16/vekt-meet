@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="vekt_main_exp_09" data-name="vekt main exp 09" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 193.06 67.56">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fff;
+      }
+    </style>
+  </defs>
+  <image id="bară" width="157" height="15" transform="translate(35.9 -.31)" xlink:href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJ0AAAAPCAYAAAD+iM2eAAAACXBIWXMAAAsSAAALEgHS3X78AAABH0lEQVRoge3WQU7DMBCF4d8mlCYhEhIbroC4Ym/AEdnTHQsWTezMOCzipFEFS0yF5pOePPY2T44dG69ME9fMA3ugmTPVea7neU0DKa9agzYg7ZzYQmihb+Gzg497eOvgvVJwkjN+s47gt/sIjOd5XS9CALdkADfwnAIvUXgKwmNUHoLQBaGNQhOEOmcfhLsg7MLILgi7YeQ2p+oj1RCpTj1Vf2IaJyR5NN0g6tHkUfVIcmjyiDo0OTSvkhyqzLM6NC0z85zPLveq27NzREFlybTOP31GY4paS3f1t5z5Fw4cnd10pjgrnSnOSmeKOXB0kEtn7zlTkt10pjgrnSnOSmeKWN5zAN7ec6Y0u+lMcVY68+u2v1aw0pk/YKUzxX0BOLqz5ZSROt0AAAAASUVORK5CYII="/>
+  <polygon id="v_left" data-name="v left" class="cls-1" points="18.82 67.56 15.03 67.56 -.46 22.52 16.77 22.52 24.08 48.65 18.82 67.56"/>
+  <polygon id="v_right" data-name="v right" class="cls-1" points="36.02 67.56 22.16 67.56 36.1 14.48 53.07 14.48 36.02 67.56"/>
+  <path id="E" class="cls-1" d="M54.12,67.56V11.26h40.21v12.87h-25.74v8.04h19.3v12.87l-19.3.1v9.55h25.74v12.87h-40.21Z"/>
+  <path id="K" class="cls-1" d="M97.24,67.56V11.26h14.48v12.09l-.29,16.21.29,7.44v20.55h-14.48ZM109.07,58.06l-.72-13.36c1.03-2.36.84-3.89,1.82-5.79s3.2-4.45,4.64-6.39,2.97-4.23,4.96-6.82l11.16-14.44h18.06l-23.49,28.92-1.21-.14-15.22,18.02ZM132.1,67.56l-13.53-22.58,9.65-11.16,21.83,33.74h-17.94Z"/>
+  <path id="T" class="cls-1" d="M140.51,24.13l10.45-12.87h41.64l-3.66,12.87h-16.09v43.43h-14.48V24.13h-17.86Z"/>
+</svg>
